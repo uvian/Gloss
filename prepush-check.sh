@@ -30,29 +30,33 @@ check "python3 -m py_compile scripts/clean_wordbank.py tests/e2e.py" "python scr
 
 # 2. JSON validity
 check "node -e 'JSON.parse(require(\"fs\").readFileSync(\"manifest.json\",\"utf8\"))'" "manifest.json valid JSON"
+check "node -e 'JSON.parse(require(\"fs\").readFileSync(\"manifest.firefox.json\",\"utf8\"))'" "manifest.firefox.json valid JSON"
 check "node -e 'JSON.parse(require(\"fs\").readFileSync(\"src/data/wordbank.json\",\"utf8\"))'" "wordbank.json valid JSON"
 check "node -e 'JSON.parse(require(\"fs\").readFileSync(\"src/data/wordbank-meta.json\",\"utf8\"))'" "wordbank-meta.json valid JSON"
 
-# 3. Manifest references & cross-browser (Chrome + Firefox Desktop/Android) keys exist
+# 3. Manifest checks: pure Chrome MV3 root manifest + valid Firefox Desktop/Android overlay
 check "node -e '
 const fs = require(\"fs\");
 const m = JSON.parse(fs.readFileSync(\"manifest.json\", \"utf8\"));
+const ff = JSON.parse(fs.readFileSync(\"manifest.firefox.json\", \"utf8\"));
 if (!m.name || m.name.length > 45) { console.error(\"manifest name exceeds Firefox 45-char limit:\", m.name?.length); process.exit(1); }
-if (!m.background?.service_worker) { console.error(\"Missing background.service_worker\"); process.exit(1); }
-if (!Array.isArray(m.background?.scripts) || !m.background.scripts.length) { console.error(\"Missing background.scripts for Firefox\"); process.exit(1); }
-if (!m.browser_specific_settings?.gecko?.id) { console.error(\"Missing gecko.id\"); process.exit(1); }
-if (!m.browser_specific_settings?.gecko_android) { console.error(\"Missing gecko_android\"); process.exit(1); }
+if (!m.background?.service_worker) { console.error(\"Missing background.service_worker in manifest.json\"); process.exit(1); }
+if (m.background?.scripts) { console.error(\"Chrome MV3 manifest.json must NOT contain background.scripts\"); process.exit(1); }
+if (m.browser_specific_settings) { console.error(\"Chrome MV3 manifest.json must NOT contain browser_specific_settings\"); process.exit(1); }
+if (!Array.isArray(ff.background?.scripts) || !ff.background.scripts.length) { console.error(\"Missing background.scripts in manifest.firefox.json\"); process.exit(1); }
+if (!ff.browser_specific_settings?.gecko?.id) { console.error(\"Missing gecko.id in manifest.firefox.json\"); process.exit(1); }
+if (!ff.browser_specific_settings?.gecko_android) { console.error(\"Missing gecko_android in manifest.firefox.json\"); process.exit(1); }
 const files = [
   m.action.default_popup,
   m.background.service_worker,
-  ...m.background.scripts,
+  ...ff.background.scripts,
   ...m.content_scripts.flatMap(cs => [...(cs.js || []), ...(cs.css || [])]),
   ...m.web_accessible_resources.flatMap(r => r.resources || [])
 ];
 for (const f of files) {
   if (!fs.existsSync(f)) { console.error(\"Missing:\", f); process.exit(1); }
 }
-'" "manifest.json cross-browser keys, <=45-char name & referenced files exist"
+'" "Chrome MV3 manifest.json + Firefox overlay manifest.firefox.json & files valid"
 
 # 3b. Zero unsafe HTML sinks in src/ (Mozilla AMO addons-linter clean)
 check "! rg -n \"\\.(innerHTML|outerHTML)\\s*=|insertAdjacentHTML\\s*\\(\" src/" "zero innerHTML/outerHTML/insertAdjacentHTML in src/"

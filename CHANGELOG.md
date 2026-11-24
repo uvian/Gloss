@@ -1,5 +1,13 @@
 # Gloss（原 IFLL）— 更新日志
 
+## v0.5.3 — 2026-11-23
+
+### 修复 Chrome 加载 `background.scripts` 报错（双端清单彻底解耦）
+- **拆分 Firefox 清单补丁**：将 Firefox 专属字段（`background.scripts`、`browser_specific_settings.gecko` / `gecko_android`）抽离至 [manifest.firefox.json](manifest.firefox.json)，根目录 [manifest.json](manifest.json) 保持 100% 纯净 Chrome / Edge MV3（仅含 `background.service_worker`），彻底消除 Chrome 加载时的 `'background.scripts' requires manifest version of 2 or lower` 报错与未知字段警告。
+- **升级打包与守卫**：[scripts/pack-firefox.sh](scripts/pack-firefox.sh) 自动合并 `manifest.json` + `manifest.firefox.json` 生成同时支持 Firefox 桌面与安卓的 `dist/gloss-firefox-v0.5.3.xpi`（AMO 0 错误 0 警告）；[prepush-check.sh](prepush-check.sh) 同步校验两份清单互不污染。
+
+---
+
 ## v0.5.2 — 2026-11-23
 
 ### 品牌升级为 Gloss 与全新矢量 Logo

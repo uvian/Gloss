@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Gloss — 网页沉浸学英语与翻译",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Gloss — 网页沉浸式英语学习与双语翻译助手：智能行内替换、词元标注、微批双语翻译、输入框译英与 SM-2 主动回忆训练。",
   "permissions": [
     "storage",
@@ -52,16 +52,7 @@
     }
   ],
   "background": {
-    "service_worker": "src/background/background.js",
-    "scripts": [
-      "src/shared/constants.js",
-      "src/shared/utils.js",
-      "src/shared/storage.js",
-      "src/background/cache-db.js",
-      "src/background/ai-client.js",
-      "src/background/batch-runner.js",
-      "src/background/background.js"
-    ]
+    "service_worker": "src/background/background.js"
   },
   "commands": {
     "toggle-translate": {
@@ -88,17 +79,5 @@
     "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "ifll@wto.li",
-      "strict_min_version": "140.0",
-      "data_collection_permissions": {
-        "required": ["websiteContent"]
-      }
-    },
-    "gecko_android": {
-      "strict_min_version": "142.0"
-    }
   }
 }

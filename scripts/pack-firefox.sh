@@ -12,28 +12,32 @@ from pathlib import Path
 
 root = Path(".").resolve()
 manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+ff_overlay = json.loads((root / "manifest.firefox.json").read_text(encoding="utf-8"))
+
+# Merge base manifest with Firefox-specific overlay (background.scripts + gecko / gecko_android)
+ff_manifest = json.loads(json.dumps(manifest))
+ff_manifest["background"] = ff_overlay["background"]
+ff_manifest["browser_specific_settings"] = ff_overlay["browser_specific_settings"]
 
 # Verify Firefox Desktop & Android MV3 requirements before packaging
-bg = manifest.get("background", {})
-bss = manifest.get("browser_specific_settings", {})
-if len(manifest.get("name", "")) > 45:
-    raise SystemExit(f"ERROR: manifest.json name exceeds Firefox 45-char limit ({len(manifest['name'])} chars).")
+bg = ff_manifest.get("background", {})
+bss = ff_manifest.get("browser_specific_settings", {})
+if len(ff_manifest.get("name", "")) > 45:
+    raise SystemExit(f"ERROR: manifest.json name exceeds Firefox 45-char limit ({len(ff_manifest['name'])} chars).")
+if "service_worker" in bg:
+    raise SystemExit("ERROR: Firefox manifest should not include background.service_worker.")
 if not bg.get("scripts"):
-    raise SystemExit("ERROR: manifest.json is missing background.scripts for Firefox.")
+    raise SystemExit("ERROR: manifest.firefox.json is missing background.scripts for Firefox.")
 if not bss.get("gecko", {}).get("id"):
-    raise SystemExit("ERROR: manifest.json is missing browser_specific_settings.gecko.id.")
+    raise SystemExit("ERROR: manifest.firefox.json is missing browser_specific_settings.gecko.id.")
 if "gecko_android" not in bss:
-    raise SystemExit("ERROR: manifest.json is missing browser_specific_settings.gecko_android.")
+    raise SystemExit("ERROR: manifest.firefox.json is missing browser_specific_settings.gecko_android.")
 
-version = manifest.get("version", "0.0.0")
+version = ff_manifest.get("version", "0.0.0")
 dist_dir = root / "dist"
 dist_dir.mkdir(exist_ok=True)
 out_path = dist_dir / f"gloss-firefox-v{version}.xpi"
 
-# Build a Firefox-specific manifest copy inside the .xpi without background.service_worker
-# so AMO addons-linter produces 0 warnings while repo manifest.json remains Chrome+Firefox dual-ready.
-ff_manifest = json.loads(json.dumps(manifest))
-ff_manifest.get("background", {}).pop("service_worker", None)
 ff_manifest_bytes = (json.dumps(ff_manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
 include_files = []
@@ -53,8 +57,9 @@ with zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED, compressle
 size_kb = out_path.stat().st_size / 1024
 print(f"Packed {len(include_files) + 1} files -> {out_path.relative_to(root)} ({size_kb:.1f} KB) [Firefox-clean manifest]")
 print("")
-print("Firefox for Android 安装说明:")
-print("  1. 自发行签名（推荐，长期使用）: 登录 https://addons.mozilla.org/developers/ -> 提交新扩展/上传新版本 -> 选择「自行分发 (On your own)」上传此 .xpi，下载 Mozilla 自动签名后的 .xpi 文件。")
-print("  2. 在手机 Firefox 中: 设置 -> 关于 Firefox -> 连点 5 次 Firefox 图标开启调试模式 -> 返回设置 -> 「从文件安装扩展」选择已签名的 .xpi。")
-print("  3. 开发调试（无需签名）: 手机开启「通过 USB 远程调试」，电脑运行 npx web-ext run -t firefox-android --android-device <device_id>")
+print("Firefox 桌面端 / 安卓端安装说明:")
+print("  1. 桌面端临时调试（无需签名）: 打开 about:debugging#/runtime/this-firefox -> 「临时载入附加组件」-> 直接选择此 .xpi 文件。")
+print("  2. 自发行签名（推荐，桌面 + 安卓永久使用）: 登录 https://addons.mozilla.org/developers/ -> 提交新扩展/上传新版本 -> 选择「自行分发 (On your own)」上传此 .xpi，下载 Mozilla 自动签名后的 .xpi 文件。")
+print("  3. 桌面端永久安装: 打开 about:addons -> 齿轮 -> 「从文件安装附加组件」选择已签名的 .xpi。")
+print("  4. 安卓端永久安装: 手机 Firefox 设置 -> 关于 Firefox -> 连点 5 次 Firefox 图标开启调试模式 -> 返回设置 -> 「从文件安装扩展」选择已签名的 .xpi。")
 PY

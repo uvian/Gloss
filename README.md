@@ -14,12 +14,12 @@
 
 ## 快速安装（无需构建）
 
-1. **Chrome / Edge / Brave（桌面）**：打开 `chrome://extensions` → 开启右上角「开发者模式」→ 点击「加载已解压的扩展程序」→ 选择本仓库**根目录**。
-2. **Firefox 桌面端（140+）**：打开 `about:debugging#/runtime/this-firefox` → 点击「临时载入附加组件」→ 选择根目录下的 `manifest.json`。
-3. **Firefox 安卓端（142+）**：
-   - 运行 `./scripts/pack-firefox.sh` 生成 `dist/gloss-firefox-v*.xpi`。
-   - **长期使用（推荐）**：登录 [Mozilla Add-on Developer Hub](https://addons.mozilla.org/developers/) 提交扩展并选择 **自行分发（On your own / Unlisted）**，几分钟即可下载 Mozilla 官方自动签名后的 `.xpi`；在手机 Firefox 中进入「设置 → 关于 Firefox → 连点 5 次 Firefox Logo 开启调试模式 → 返回设置 → **从文件安装扩展**」选择已签名的 `.xpi` 即可。
-   - **USB 临时调试**：手机 Firefox 开启「通过 USB 远程调试」，电脑端执行 `npx web-ext run -t firefox-android --android-device <device_id>`。
+1. **Chrome / Edge / Brave（桌面）**：打开 `chrome://extensions` → 开启右上角「开发者模式」→ 点击「加载已解压的扩展程序」→ 选择本仓库**根目录**（根目录 `manifest.json` 为纯净 Chrome MV3，0 警告直接加载）。
+2. **Firefox 桌面端（140+）与安卓端（142+）**：先执行 `./scripts/pack-firefox.sh` 合并 `manifest.firefox.json` 生成 `dist/gloss-firefox-v*.xpi`：
+   - **桌面端临时调试**：打开 `about:debugging#/runtime/this-firefox` → 点击「临时载入附加组件」→ 直接选择 `dist/gloss-firefox-v*.xpi`。
+   - **桌面 + 安卓永久使用（推荐）**：登录 [Mozilla Add-on Developer Hub](https://addons.mozilla.org/developers/) 提交扩展并选择 **自行分发（On your own / Unlisted）**，下载 Mozilla 官方自动签名后的 `.xpi`：
+     - **桌面端**：打开 `about:addons` → 齿轮 → 「从文件安装附加组件」选择已签名的 `.xpi`。
+     - **安卓端**：手机 Firefox「设置 → 关于 Firefox → 连点 5 次 Firefox Logo 开启调试模式 → 返回设置 → **从文件安装扩展**」选择已签名的 `.xpi`。
 
 ### 快捷操作
 
@@ -29,16 +29,17 @@
 ## 目录结构
 
 ```text
-├── manifest.json        # 单份跨端 MV3 清单（同时兼容 Chrome SW 与 Firefox 桌面/安卓 Event Page）
+├── manifest.json          # 纯净 Chrome / Edge MV3 清单（根目录直接加载 0 警告）
+├── manifest.firefox.json  # Firefox 桌面/安卓清单补丁（background.scripts + gecko/gecko_android）
 ├── src/
-│   ├── shared/          # 唯一配置源、纯函数工具（含 Anki/词表解析/填空/连击）、统一存储与词库懒加载
-│   ├── data/            # 清洗后的 wordbank.json 与轻量元信息
-│   ├── background/      # 统一 AI 网关（含 OpenCode Session、微批+语境+免费兜底）、IndexedDB 双缓存、断点续传批处理
-│   ├── content/         # 中文分词/英文词形还原、替换/标注/翻译三引擎、输入框译英、双端 Shadow DOM UI、SPA 路由感知
-│   ├── popup/           # 桌面 380px / 移动自适应控制弹窗（自定义模型 Combobox、Firefox 权限引导）
-│   └── dashboard/       # 响应式学习中心（30天热力图、闪卡/拼写/填空训练、批量导入、Anki导出、暗色主题）
-├── scripts/             # clean_wordbank.py 词库清洗脚本、pack-firefox.sh Firefox .xpi 打包脚本
-└── tests/               # Node 原生 node:test 单元测试 + Playwright 桌面/移动双端 Chromium MV3 E2E 测试
+│   ├── shared/            # 唯一配置源、纯函数工具（含 Anki/词表解析/填空/连击）、统一存储与词库懒加载
+│   ├── data/              # 清洗后的 wordbank.json 与轻量元信息
+│   ├── background/        # 统一 AI 网关（含 OpenCode Session、微批+语境+免费兜底）、IndexedDB 双缓存、断点续传批处理
+│   ├── content/           # 中文分词/英文词形还原、替换/标注/翻译三引擎、输入框译英、双端 Shadow DOM UI、SPA 路由感知
+│   ├── popup/             # 桌面 380px / 移动自适应控制弹窗（自定义模型 Combobox、Firefox 权限引导）
+│   └── dashboard/         # 响应式学习中心（30天热力图、闪卡/拼写/填空训练、批量导入、Anki导出、暗色主题）
+├── scripts/               # clean_wordbank.py 词库清洗脚本、pack-firefox.sh Firefox .xpi 打包脚本
+└── tests/                 # Node 原生 node:test 单元测试 + Playwright 桌面/移动双端 Chromium MV3 E2E 测试
 ```
 
 ## 开发与校验
