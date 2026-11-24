@@ -1,10 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "IFLL - English Injector",
-  "version": "0.1.0",
-  "description": "Inject English words into Chinese pages for immersive language learning — swap & learn while you browse.",
+  "name": "IFLL — Immersive English Learning & Translator",
+  "version": "0.4.0",
+  "description": "Immersive English learning & bilingual web translation — smart inline swap, lemmatized annotation, micro-batch bilingual translation, input translation, and SM-2 active recall.",
   "permissions": [
-    "storage"
+    "storage",
+    "contextMenus",
+    "alarms"
   ],
   "host_permissions": [
     "http://*/*",
@@ -24,10 +26,17 @@
     {
       "matches": ["http://*/*", "https://*/*"],
       "js": [
-        "src/lib/wordbank.js",
-        "src/lib/storage.js",
-        "src/lib/injector.js",
-        "src/content/content.js"
+        "src/shared/constants.js",
+        "src/shared/utils.js",
+        "src/shared/storage.js",
+        "src/content/matcher.js",
+        "src/content/dom-utils.js",
+        "src/content/engine-replace.js",
+        "src/content/engine-annotate.js",
+        "src/content/engine-translate.js",
+        "src/content/input-enhance.js",
+        "src/content/shadow-ui.js",
+        "src/content/bootstrap.js"
       ],
       "css": ["src/content/content.css"],
       "run_at": "document_idle"
@@ -35,13 +44,35 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": [],
+      "resources": [
+        "src/data/wordbank.json",
+        "src/data/wordbank-meta.json"
+      ],
       "matches": ["http://*/*", "https://*/*"]
     }
   ],
   "background": {
-    "service_worker": "src/background/background.js",
-    "type": "module"
+    "service_worker": "src/background/background.js"
+  },
+  "commands": {
+    "toggle-translate": {
+      "suggested_key": {
+        "default": "Alt+T"
+      },
+      "description": "切换当前页双语对比翻译 / 显隐译文"
+    },
+    "cycle-mode": {
+      "suggested_key": {
+        "default": "Alt+M"
+      },
+      "description": "切换当前页学习模式（替换 / 标注 / 翻译 / 关闭）"
+    },
+    "translate-input": {
+      "suggested_key": {
+        "default": "Alt+Y"
+      },
+      "description": "将当前输入框中的中文即时翻译为英文"
+    }
   },
   "icons": {
     "16": "icons/icon16.png",
@@ -52,7 +83,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "ifll@wto.li",
-      "strict_min_version": "121.0"
+      "strict_min_version": "125.0"
     }
   }
 }

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IFLL · 学习中心</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<div class="d-shell">
+  <header class="d-topbar">
+    <div class="d-brand">
+      <span class="d-logo">IFLL</span>
+      <span class="d-title">学习中心</span>
+    </div>
+    <div class="d-topbar-right">
+      <nav class="d-nav" id="mainNav">
+        <button class="d-nav-btn active" data-tab="review">SM-2 复习 <span class="d-pill" id="navDueBadge">0</span></button>
+        <button class="d-nav-btn" data-tab="vocab">词库与搭配</button>
+        <button class="d-nav-btn" data-tab="ai">AI 工具与缓存</button>
+      </nav>
+      <button id="themeToggleBtn" class="d-btn d-btn-sm" title="切换明暗主题">暗色</button>
+    </div>
+  </header>
+
+  <main class="d-main">
+    <!-- TAB 1: SM-2 Active Recall Review + 30-Day Heatmap -->
+    <section class="d-panel active" id="panel-review">
+      <!-- 30-day Heatmap & Learning Overview -->
+      <div class="d-card d-heatmap-card">
+        <div class="d-hm-head">
+          <div>
+            <span class="d-hm-title">近 30 天学习轨迹</span>
+            <span class="d-hm-sub" id="hmSummary">连续打卡 0 天 · 已掌握 0 词</span>
+          </div>
+          <div class="d-hm-legend">
+            <span>少</span>
+            <i class="hm-cell lv-0"></i><i class="hm-cell lv-1"></i><i class="hm-cell lv-2"></i><i class="hm-cell lv-3"></i>
+            <span>多</span>
+          </div>
+        </div>
+        <div class="d-hm-grid" id="heatmapGrid"></div>
+      </div>
+
+      <div class="d-review-head">
+        <div>
+          <h1 class="d-h1">间隔重复训练</h1>
+          <p class="d-sub" id="reviewSub">按遗忘曲线安排复习 · 快捷键：Space 翻面 · S 朗读 · 1-4 评分</p>
+        </div>
+        <div class="d-review-controls">
+          <div class="d-mode-pills" id="recallModes">
+            <button class="d-mode-pill active" data-rmode="flashcard">闪卡自测</button>
+            <button class="d-mode-pill" data-rmode="spelling">听音拼写</button>
+            <button class="d-mode-pill" data-rmode="cloze">语境填空</button>
+          </div>
+          <div class="d-review-meta">
+            <span class="d-stat-chip">待复习 <strong id="dueCounter">0</strong></span>
+            <span class="d-stat-chip">本次完成 <strong id="sessionDone">0</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="flashcardStage" class="d-stage"></div>
+    </section>
+
+    <!-- TAB 2: Vocabulary, Phrases, Bulk Import & Anki Export -->
+    <section class="d-panel" id="panel-vocab">
+      <div class="d-vocab-bar">
+        <div class="d-subtabs" id="vocabTabs">
+          <button class="d-subtab active" data-sub="reviewQueue">复习队列 (<span id="cntReview">0</span>)</button>
+          <button class="d-subtab" data-sub="knownWords">已掌握 (<span id="cntKnown">0</span>)</button>
+          <button class="d-subtab" data-sub="userWords">自定义生词 (<span id="cntUser">0</span>)</button>
+          <button class="d-subtab" data-sub="phrases">搭配短语 (<span id="cntPhrases">0</span>)</button>
+        </div>
+        <div class="d-vocab-tools">
+          <input type="search" id="vocabSearch" class="d-search" placeholder="搜索中文或英文…">
+          <button id="toggleBulkImportBtn" class="d-btn d-btn-sm">批量导入</button>
+          <button id="exportAnkiBtn" class="d-btn d-btn-sm">导出 Anki TSV</button>
+        </div>
+      </div>
+
+      <!-- Bulk Import Panel (Paste or TXT/CSV from Eudic/Shanbay/Momo/Anki) -->
+      <div id="bulkImportPanel" class="d-card" style="display:none;margin-bottom:12px">
+        <div class="d-card-head">
+          <div>
+            <h2 class="d-h2">批量导入词表（支持欧路 / 扇贝 / 墨墨 / Anki 文本）</h2>
+            <p class="d-hint">每行一条，自动识别制表符、逗号、冒号或 <code>-</code> 分隔，中英列序自动判断（如 <code>paradigm, 范式</code> 或 <code>resilient - 有韧性的</code>）。</p>
+          </div>
+          <div>
+            <button id="bulkUploadBtn" class="d-btn d-btn-sm">选择 TXT/CSV 文件</button>
+            <input type="file" id="bulkFileInput" accept=".txt,.csv,.tsv" style="display:none">
+          </div>
+        </div>
+        <textarea id="bulkTextarea" class="d-textarea" rows="4" style="margin-top:8px" placeholder="paradigm, 范式&#10;resilient	有韧性的&#10;权衡利弊 - weigh the pros and cons"></textarea>
+        <div class="d-form-row" style="justify-content:space-between;margin-bottom:0">
+          <label class="d-check"><input type="checkbox" id="bulkAlsoReview" checked> 同时加入 SM-2 复习队列</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="d-msg" id="bulkMsg" style="margin:0"></span>
+            <button id="bulkConfirmBtn" class="d-btn d-btn-primary d-btn-sm">解析并导入</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inline Quick-Add Forms -->
+      <div id="addUserWordForm" class="d-card d-form-row" style="display:none">
+        <input type="text" id="uwZh" class="d-input" placeholder="中文词（如：范式）">
+        <input type="text" id="uwEn" class="d-input" placeholder="英文词（如：paradigm）">
+        <select id="uwPos" class="d-select">
+          <option value="noun">名词</option>
+          <option value="verb">动词</option>
+          <option value="adjective">形容词</option>
+          <option value="adverb">副词</option>
+          <option value="phrase">短语</option>
+        </select>
+        <input type="text" id="uwDef" class="d-input" placeholder="英文释义或备注（可选）" style="flex:1.4">
+        <button id="uwAddBtn" class="d-btn d-btn-primary">添加生词</button>
+      </div>
+
+      <div id="addPhraseForm" class="d-card d-form-row" style="display:none">
+        <input type="text" id="phZh" class="d-input" placeholder="中文搭配（如：权衡利弊）">
+        <input type="text" id="phEn" class="d-input" placeholder="英文表达（如：weigh the pros and cons）" style="flex:1.5">
+        <button id="phAddBtn" class="d-btn d-btn-primary">保存搭配</button>
+        <button id="phResetBtn" class="d-btn" title="恢复被删掉的内置常用搭配">恢复内置</button>
+      </div>
+
+      <div id="vocabList" class="d-list"></div>
+    </section>
+
+    <!-- TAB 3: AI Batch, Cache & Custom Actions -->
+    <section class="d-panel" id="panel-ai">
+      <div class="d-grid-2">
+        <div class="d-card">
+          <h2 class="d-h2">后台词库预处理（支持断点续传）</h2>
+          <p class="d-hint">在扩展后台 Service Worker 中分片（10 词/批）静默预生成 AI 深度解析与例句并写入 IndexedDB，任务进度自动持久化，即使 SW 休眠也可自动续跑。</p>
+          <div class="d-form-row" style="margin-top:10px">
+            <input type="number" id="dBatchCount" class="d-input" value="50" min="5" max="500" style="width:90px">
+            <select id="dBatchLevel" class="d-select">
+              <option value="all">全部等级</option>
+              <option value="cet4">CET-4</option>
+              <option value="cet6">CET-6</option>
+              <option value="ielts">IELTS</option>
+              <option value="graduate">考研</option>
+            </select>
+            <button id="dBatchStart" class="d-btn d-btn-primary">开始预处理</button>
+            <button id="dBatchStop" class="d-btn d-btn-danger" style="display:none">停止</button>
+          </div>
+          <div class="d-prog-wrap" id="dBatchProg" style="display:none">
+            <div class="d-prog-bar"><div class="d-prog-fill" id="dBatchFill"></div></div>
+            <span class="d-prog-txt" id="dBatchText">0/0</span>
+          </div>
+          <div class="d-msg" id="dBatchMsg"></div>
+        </div>
+
+        <div class="d-card">
+          <h2 class="d-h2">本地持久化缓存 (IndexedDB)</h2>
+          <p class="d-hint">所有段落翻译与 AI 词典解析均跨标签页永久复用（自动按 LRU 上限淘汰），大幅节省 API Token。</p>
+          <div class="d-cache-grid">
+            <div class="d-cache-box"><strong id="cacheWordCnt">0</strong><span>已缓存词典解析</span></div>
+            <div class="d-cache-box"><strong id="cacheTxCnt">0</strong><span>已缓存段落翻译</span></div>
+          </div>
+          <div style="margin-top:12px;display:flex;justify-content:flex-end">
+            <button id="clearCacheBtn" class="d-btn d-btn-danger">清空全部缓存</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-card" style="margin-top:14px">
+        <div class="d-card-head">
+          <div>
+            <h2 class="d-h2">自定义 AI 动作</h2>
+            <p class="d-hint">支持占位符：<code>{word}</code> 英文词、<code>{zh}</code> 中文、<code>{def}</code> 释义、<code>{context}</code> 网页原句。</p>
+          </div>
+          <div class="d-preset-btns">
+            <button class="d-btn d-btn-sm" data-preset="etymology">+ 词根词缀模板</button>
+            <button class="d-btn d-btn-sm" data-preset="nuance">+ 近义辨析模板</button>
+            <button class="d-btn d-btn-sm" data-preset="business">+ 商务表达模板</button>
+          </div>
+        </div>
+
+        <div id="customActionsList" class="d-list" style="margin-top:10px"></div>
+
+        <div class="d-editor" id="actionEditor">
+          <div class="d-form-row">
+            <input type="text" id="actName" class="d-input" placeholder="动作按钮名称（如：词根记忆）">
+            <input type="text" id="actFields" class="d-input" placeholder="结构化字段（可选，逗号分隔，如：词根,记忆法）" style="flex:1.4">
+          </div>
+          <textarea id="actPrompt" class="d-textarea" rows="3" placeholder="提示词模板，例如：结合语境 {context} 拆解英文单词 {word} ({zh}) 的词根词缀。"></textarea>
+          <div class="d-form-row" style="justify-content:flex-end">
+            <button id="actCancel" class="d-btn" style="display:none">取消编辑</button>
+            <button id="actSave" class="d-btn d-btn-primary">保存动作</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="../shared/constants.js"></script>
+<script src="../shared/utils.js"></script>
+<script src="../shared/storage.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

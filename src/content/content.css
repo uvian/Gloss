@@ -1,717 +1,133 @@
 /*
- * IFLL — Injected styles for English-inline words + tooltip + welcome prompt
+ * IFLL — Minimal Page-Inline Styles Only
+ * All interactive UI (Tooltip, Selection Toolbar, Floating Capsule, Prompt, Toast)
+ * is isolated inside Shadow DOM in shadow-ui.js so host CSS can never break it.
  */
-:root {
-  --ifll-tooltip-bg: #1f2937;
-  --ifll-tooltip-text: #f3f4f6;
-  --ifll-tooltip-muted: #9ca3af;
-  --ifll-tooltip-border: #374151;
-  --ifll-accent: #60a5fa;
-}
 
-/* ── Welcome Prompt — compact, clean, not intrusive ── */
-.ifll-prompt {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-120%);
-  z-index: 2147483646;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-  min-width: 420px;
-  max-width: 520px;
-  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  overflow: hidden;
-}
-.ifll-prompt-show {
-  transform: translateX(-50%) translateY(0);
-}
-.ifll-prompt-hide {
-  transform: translateX(-50%) translateY(-120%);
-  transition-duration: 0.25s;
-  transition-timing-function: ease-in;
-}
-
-.ifll-prompt-body {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-}
-.ifll-prompt-icon {
-  font-size: 18px;
-  line-height: 1;
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-.ifll-prompt-text {
-  flex: 1;
-  min-width: 0;
-}
-.ifll-prompt-title {
-  display: block;
-  color: #374151;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-.ifll-prompt-desc {
-  display: block;
-  color: #9ca3af;
-  font-size: 11px;
-  line-height: 1.3;
-}
-.ifll-prompt-actions {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.ifll-prompt-btn {
-  border: none;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 4px 8px;
-  transition: background 0.12s;
-  white-space: nowrap;
-  line-height: 1.4;
-}
-.ifll-prompt-btn-primary {
-  background: #2563eb;
-  color: #ffffff;
-}
-.ifll-prompt-btn-primary:hover {
-  background: #1d4ed8;
-}
-.ifll-prompt-btn-secondary {
-  background: #e5e7eb;
-  color: #4b5563;
-}
-.ifll-prompt-btn-secondary:hover {
-  background: #d1d5db;
-}
-.ifll-prompt-btn-skip {
-  background: transparent;
-  color: #9ca3af;
-  font-weight: 400;
-}
-.ifll-prompt-btn-skip:hover {
-  color: #6b7280;
-}
-
-.ifll-prompt-progress {
-  height: 2px;
-  background: #f3f4f6;
-}
-.ifll-prompt-bar {
-  height: 100%;
-  width: 100%;
-  background: #93c5fd;
-  transition: none;
-}
-
-/* ── Inline English word: no bg/color, just a subtle dotted underline ── */
+/* Inline replaced English word */
 .ifll-word {
   cursor: pointer;
   padding: 0 1px;
-  border-bottom: 2px dotted rgba(128, 128, 128, 0.5);
-  transition: border-color 0.15s;
-  /* Inherit the surrounding text color exactly */
+  border-bottom: 1.5px dotted rgba(46, 80, 144, 0.55);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
   color: inherit;
   background: transparent;
   font-family: inherit;
   font-weight: inherit;
   font-size: inherit;
   line-height: inherit;
+  border-radius: 2px;
 }
 .ifll-word:hover {
-  border-bottom-color: rgba(59, 130, 246, 0.8);
+  border-bottom-color: rgba(46, 80, 144, 0.95);
+  background: rgba(46, 80, 144, 0.06);
+}
+.ifll-word.ifll-word-daily {
+  font-weight: 600;
+}
+.ifll-word.ifll-word-review {
+  border-bottom-style: dashed;
+  border-bottom-color: rgba(180, 118, 28, 0.78);
+}
+.ifll-word.ifll-word-phrase {
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-bottom-color: rgba(46, 80, 144, 0.45);
+}
+.ifll-word.ifll-word-bilingual {
+  margin-left: 2px;
+  font-size: 0.9em;
+  opacity: 0.88;
 }
 .ifll-word.ifll-known {
-  border-bottom-color: rgba(128, 128, 128, 0.2);
+  border-bottom-color: rgba(128, 128, 128, 0.22);
 }
 
-/* ── Tooltip (page-level popup) ── */
-.ifll-tooltip {
-  position: fixed;
-  z-index: 2147483630;
-  display: none;
-  width: 300px;
-  max-height: 460px;
-  overflow-y: auto;
-  background: #fdfdfc;
-  color: #1A1A1A;
-  border: 1px solid #EBE7E3;
-  border-radius: 10px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
-  font-family: -apple-system, 'Helvetica Neue', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
-  padding: 0;
-  user-select: none;
-  animation: ifll-fade-up 0.18s ease-out;
-}
-/* Drag handle bar at top — sticky so it stays visible while card content scrolls */
-.ifll-tt-handle {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  width: 100%;
-  height: 14px;               /* full-width hit area — easy to grab */
-  flex-shrink: 0;
-  cursor: move;
-  background: inherit;        /* mask scrolled content behind the bar */
-  transition: none;
-  border-radius: 10px 10px 0 0;
-}
-.ifll-tt-handle::after {
-  content: '';
-  display: block;
-  width: 40px;
-  height: 4px;
-  margin: 5px auto 0;
-  background: #D6D0C8;
-  border-radius: 2px;
-  transition: background 0.15s;
-}
-.ifll-tooltip:hover .ifll-tt-handle::after { background: #A8A096; }
-.ifll-tt-en {
-  font-size: 20px;
-  font-weight: 600;
-  padding: 14px 14px 0 14px;
-}
-.ifll-tt-meta {
-  font-size: 13px;
-  color: #6B6560;
-  padding: 2px 14px 4px 14px;
-}
-.ifll-tt-pos {
-  color: #2E5090;
-  font-weight: 500;
-}
-.ifll-tt-ipa {
-  font-family: 'Menlo', 'Consolas', monospace;
-  font-size: 12px;
-  color: #9E9890;
-}
-.ifll-tt-def {
-  font-size: 14px;
-  color: #1A1A1A;
-  padding: 0 14px 6px 14px;
-  line-height: 1.5;
-}
-.ifll-tt-divider {
-  height: 1px;
-  background: #F2F0ED;
-  margin: 6px 14px;
-}
-.ifll-tt-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #9E9890;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 4px 14px;
-}
-.ifll-tt-example {
-  padding: 3px 14px;
-  font-size: 14px;
-  color: #1A1A1A;
-  line-height: 1.5;
-}
-.ifll-tt-ai-example {
-  border-left: 2px solid #E8EDF5;
-  margin: 2px 14px;
-  padding: 4px 8px;
-  font-style: normal;
-}
-.ifll-tt-trans {
-  padding: 2px 14px 4px 14px;
-  font-size: 13px;
-  color: #6B6560;
-  line-height: 1.4;
-}
-.ifll-tt-bold { font-weight: 600; }
-.ifll-tt-deep-row {
-  padding: 3px 14px;
-  font-size: 13px;
-  color: #1A1A1A;
-  line-height: 1.5;
-}
-.ifll-tt-deep-tag {
-  display: inline-block;
-  background: #F5F3F0;
-  color: #6B6560;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 3px;
-  margin-right: 5px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-.ifll-tt-deep-usage {
-  padding: 4px 14px;
-  font-size: 13px;
-  color: #6B6560;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-.ifll-tt-deep-empty {
-  padding: 4px 14px;
-  font-size: 13px;
-  color: #9E9890;
-}
-.ifll-tt-deep {
-  max-height: 240px;
-  overflow-y: auto;
-  padding: 4px 14px;
-}
-.ifll-tt-header { display: flex; justify-content: space-between; align-items: baseline; }
-.ifll-tt-level {
-  font-size: 10px;
-  font-weight: 500;
-  background: #F5F3F0;
-  color: #9E9890;
-  padding: 1px 6px;
-  border-radius: 3px;
-  margin-right: 14px;
-  white-space: nowrap;
-}
-.ifll-btn-speak {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 15px;
-  padding: 0 2px;
-  margin-left: 2px;
-  vertical-align: middle;
-  opacity: 0.4;
-  transition: opacity 0.12s;
-}
-.ifll-btn-speak:hover { opacity: 0.8; }
-
-/* Tooltip action buttons */
-.ifll-tt-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 8px 14px 10px 14px;
-  border-top: 1px solid #F2F0ED;
-  margin-top: 6px;
-}
-.ifll-btn-known {
-  flex: 1;
-  border: 1px solid #2D6A4F;
-  border-radius: 5px;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 5px 8px;
-  cursor: pointer;
-  background: #FAF9F7;
-  color: #2D6A4F;
-  transition: all 0.12s;
-  min-width: 0;
-}
-.ifll-btn-known:hover:not(:disabled) { background: #F0F5F2; }
-.ifll-btn-unknown {
-  flex: 1;
-  border: 1px solid #EBE7E3;
-  border-radius: 5px;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 5px 8px;
-  cursor: pointer;
-  background: #FAF9F7;
-  color: #6B6560;
-  transition: all 0.12s;
-  min-width: 0;
-}
-.ifll-btn-unknown:hover:not(:disabled) { background: #F5F3F0; border-color: #D4CEC7; }
-.ifll-btn-exclude {
-  border: 1px solid #EBE7E3;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 5px 8px;
-  cursor: pointer;
-  background: #FAF9F7;
-  color: #9E9890;
-  transition: all 0.12s;
-  flex: 0.6;
-  min-width: 0;
-}
-.ifll-btn-exclude:hover:not(:disabled) { background: #FDF6F5; color: #C53030; border-color: #FED7D7; }
-.ifll-btn-addword {
-  border: 1px dashed #D4CEC7;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 5px 8px;
-  cursor: pointer;
-  background: transparent;
-  color: #9E9890;
-  transition: all 0.12s;
-  flex: 0.6;
-  min-width: 0;
-}
-.ifll-btn-addword:hover:not(:disabled) { border-color: #2E5090; color: #2E5090; }
-.ifll-btn-ai {
-  border: 1px solid #E8EDF5;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 5px 8px;
-  cursor: pointer;
-  background: #FAF9F7;
-  color: #2E5090;
-  transition: all 0.12s;
-  flex: 0.6;
-  min-width: 0;
-}
-.ifll-btn-ai:hover:not(:disabled) { background: #E8EDF5; }
-.ifll-btn-ai:disabled { opacity: 0.6; cursor: not-allowed; animation: ifll-pulse 1s ease-in-out infinite; }
-
-/* ── Unified button pressed state ── */
-.ifll-prompt-btn:active,
-.ifll-btn-known:active:not(:disabled),
-.ifll-btn-unknown:active:not(:disabled),
-.ifll-btn-exclude:active:not(:disabled),
-.ifll-btn-addword:active:not(:disabled),
-.ifll-btn-ai:active:not(:disabled),
-.ifll-btn-review:active,
-.ifll-btn-regen:active,
-.ifll-sel-bar button:active,
-.ifll-btn-custom:active:not(:disabled) {
-  transform: scale(0.97);
+/* Smooth sentence-level fallback */
+.ifll-replaced-smooth {
+  border-bottom: 1px dashed rgba(46, 80, 144, 0.35);
 }
 
-.ifll-tt-cached { font-size: 10px; color: #9E9890; padding: 2px 14px 6px 14px; font-style: italic; }
-
-/* Streaming live typing cursor */
-.ifll-tt-deep-streaming { padding: 8px 14px; font-size: 13px; color: #6B6560; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
-/* DeepSeek V4 Flash reasoning text — dimmed/italic so thinking ≠ answer */
-.ifll-tt-reasoning { color: #9E9890; font-style: italic; }
-.ifll-tooltip.ifll-dark .ifll-tt-reasoning { color: #7A746D; }
-.ifll-tt-cursor { display: inline; animation: ifll-blink 1s step-end infinite; color: #2E5090; }
-@keyframes ifll-blink { 50% { opacity: 0; } }
-
-@keyframes ifll-fade-up {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes ifll-pulse {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 0.35; }
-}
-
-/* ---- Daily new-word highlight ---- */
-.ifll-word-daily {
-  font-weight: 600;
-}
+/* Legacy span annotate fallback */
 .ifll-annotated {
-  text-decoration: underline;
-  text-decoration-style: dotted;
+  text-decoration: underline dotted #2E5090;
   text-underline-offset: 3px;
-  text-decoration-color: #2563eb;
-  cursor: help;
-  position: relative;
+  cursor: pointer;
   color: inherit;
   background: transparent;
+  border-radius: 2px;
 }
 .ifll-annotated:hover {
-  background: rgba(37,99,235,0.06);
-  border-radius: 2px;
+  background: rgba(46, 80, 144, 0.07);
 }
 .ifll-annotated.ifll-known {
-  text-decoration-color: #22c55e;
-  opacity: 0.6;
+  text-decoration-color: rgba(45, 106, 79, 0.35);
 }
 
-/* ── Highlight API 标注（非侵入式 paint；Firefox 140+ / Chrome 105+）──
-   ::highlight 只支持 paint-only 属性（background-color/color/text-decoration/
-   text-shadow），不支持 border/布局属性 — IFLL 标注样式恰好是虚线下划线+原色，
-   零妥协。无 DOM 写入：React 重渲染抹不掉、不触发 MutationObserver、destroy
-   无需还原文本。限制：无 hover 效果、无 cursor:help（伪元素不支持盒属性）。 */
+/* CSS Custom Highlight API (zero DOM mutation) */
 ::highlight(ifll-annotate) {
-  text-decoration: underline dotted #2563eb;
+  text-decoration: underline dotted #2E5090;
   text-underline-offset: 3px;
   color: inherit;
 }
+body.ifll-hl-pointer {
+  cursor: pointer !important;
+}
 
-/* ── Translation panel ── */
+/* Bilingual translation panel (block span inside target element — layout safe) */
 .ifll-trans-panel {
-  margin: 4px 0 8px 0;
-  padding: 8px 12px;
-  background: #f0fdf4;
-  border-left: 3px solid #22c55e;
-  border-radius: 4px;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #374151;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  display: block;
+  margin: 6px 0 2px 0;
+  padding: 6px 11px;
+  background: rgba(46, 80, 144, 0.055);
+  border-left: 2.5px solid #2E5090;
+  border-radius: 0 5px 5px 0;
+  font-size: 0.93em;
+  line-height: 1.62;
+  font-weight: 400;
+  font-style: normal;
+  color: inherit;
+  opacity: 0.92;
+  letter-spacing: 0.01em;
 }
-@media (prefers-color-scheme: dark) {
-  .ifll-trans-panel {
-    background: #1a2e1a;
-    border-left-color: #22c55e;
-    color: #d1d5db;
-  }
-}
-
-/* ── Review buttons (color-coded) ── */
-.ifll-btn-review {
-  flex: 1;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 6px 4px;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.ifll-btn-r4 { background: #f0fdf4; color: #166534; }
-.ifll-btn-r4:hover { background: #dcfce7; }
-.ifll-btn-r3 { background: #f0f9ff; color: #075985; }
-.ifll-btn-r3:hover { background: #e0f2fe; }
-.ifll-btn-r2 { background: #fefce8; color: #854d0e; }
-.ifll-btn-r2:hover { background: #fef08a; }
-.ifll-btn-r1 { background: #fef2f2; color: #991b1b; }
-.ifll-btn-r1:hover { background: #fecaca; }
-
-
-/* ── Review count badge ── */
-.ifll-review-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 10px;
-  font-weight: 700;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 8px;
-  padding: 0 5px;
-  margin-left: 2px;
-}
-
-/* ── Smooth (sentence-level) replacement ── */
-.ifll-replaced-smooth .ifll-word {
-  color: #1d4ed8;
-  border-bottom: 1px dashed #93c5fd;
+.ifll-trans-panel.ifll-trans-loading {
+  opacity: 0.58;
+  font-size: 0.85em;
   font-style: italic;
 }
-.ifll-replaced-smooth .ifll-word:hover {
-  background: rgba(37,99,235,0.04);
-  border-radius: 2px;
-}
-/* ── Dark theme tooltip ── */
-.ifll-tooltip.ifll-dark {
-  background: #1E1E22;
-  color: #E8E4DF;
-  border-color: #3A3632;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.2);
-}
-.ifll-tooltip.ifll-dark .ifll-tt-en { color: #F0ECE6; }
-.ifll-tooltip.ifll-dark .ifll-tt-meta { color: #A09A94; }
-.ifll-tooltip.ifll-dark .ifll-tt-pos { color: #7B9FD4; }
-.ifll-tooltip.ifll-dark .ifll-tt-ipa { color: #8A8580; }
-.ifll-tooltip.ifll-dark .ifll-tt-def { color: #E8E4DF; }
-.ifll-tooltip.ifll-dark .ifll-tt-divider { background: #3A3632; }
-.ifll-tooltip.ifll-dark .ifll-tt-label { color: #8A8580; }
-.ifll-tooltip.ifll-dark .ifll-tt-example { color: #E8E4DF; }
-.ifll-tooltip.ifll-dark .ifll-tt-ai-example { border-left-color: #3A4A6B; }
-.ifll-tooltip.ifll-dark .ifll-tt-trans { color: #A09A94; }
-.ifll-tooltip.ifll-dark .ifll-tt-deep-row { color: #E8E4DF; }
-.ifll-tooltip.ifll-dark .ifll-tt-deep-tag { background: #2A2724; color: #A09A94; }
-.ifll-tooltip.ifll-dark .ifll-tt-deep-usage { color: #A09A94; }
-.ifll-tooltip.ifll-dark .ifll-tt-deep-empty { color: #6B6560; }
-.ifll-tooltip.ifll-dark .ifll-tt-actions { border-top-color: #3A3632; }
-.ifll-tooltip.ifll-dark .ifll-tt-level { background: #2A2724; color: #8A8580; }
-.ifll-tooltip.ifll-dark .ifll-tt-cached { color: #6B6560; }
-.ifll-tooltip.ifll-dark .ifll-btn-known { background: #1E1E22; border-color: #6DBF93; color: #6DBF93; }
-.ifll-tooltip.ifll-dark .ifll-btn-known:hover { background: #1A2F24; }
-.ifll-tooltip.ifll-dark .ifll-btn-unknown { background: #1E1E22; border-color: #3A3632; color: #A09A94; }
-.ifll-tooltip.ifll-dark .ifll-btn-unknown:hover { background: #2A2724; }
-.ifll-tooltip.ifll-dark .ifll-btn-exclude { background: #1E1E22; border-color: #3A3632; color: #8A8580; }
-.ifll-tooltip.ifll-dark .ifll-btn-exclude:hover { background: #2A1A1A; color: #E88B8B; border-color: #4A3030; }
-.ifll-tooltip.ifll-dark .ifll-btn-addword { border-color: #4A4540; color: #8A8580; }
-.ifll-tooltip.ifll-dark .ifll-btn-addword:hover { border-color: #7B9FD4; color: #7B9FD4; }
-.ifll-tooltip.ifll-dark .ifll-btn-ai { background: #1E1E22; border-color: #3A4A6B; color: #A0C4FF; }
-.ifll-tooltip.ifll-dark .ifll-btn-ai:hover { background: #252D40; color: #B8D4FF; }
-.ifll-tooltip.ifll-dark .ifll-btn-review { background: #1E1E22; border-color: #3A3632; color: #A09A94; }
-.ifll-tooltip.ifll-dark .ifll-btn-r4 { border-color: #4A6A55; color: #6DBF93; }
-.ifll-tooltip.ifll-dark .ifll-btn-r4:hover { background: #1A2A1F; }
-.ifll-tooltip.ifll-dark .ifll-btn-r3 { border-color: #3A4A6B; color: #7B9FD4; }
-.ifll-tooltip.ifll-dark .ifll-btn-r3:hover { background: #1A2030; }
-.ifll-tooltip.ifll-dark .ifll-btn-r2 { border-color: #4A4030; color: #D4A84B; }
-.ifll-tooltip.ifll-dark .ifll-btn-r2:hover { background: #2A2418; }
-.ifll-tooltip.ifll-dark .ifll-btn-r1 { border-color: #4A2828; color: #E88B8B; }
-.ifll-tooltip.ifll-dark .ifll-btn-r1:hover { background: #2A1A1A; }
-
-/* ── Custom AI action buttons ── */
-.ifll-btn-custom {
-  border: 1px solid #EBE7E3;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 500;
-  padding: 5px 8px;
-  cursor: pointer;
-  background: #FAF9F7;
-  color: #6B6560;
-  transition: all 0.12s;
-  margin: 2px 0;
-}
-.ifll-btn-custom:hover:not(:disabled) {
-  background: #E8EDF5;
-  color: #2E5090;
-  border-color: #C0CCE0;
-}
-.ifll-btn-custom:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  animation: ifll-pulse 1s ease-in-out infinite;
-}
-.ifll-tooltip.ifll-dark .ifll-btn-custom {
-  background: #1E1E22;
-  border-color: #3A3632;
-  color: #A09A94;
-}
-.ifll-tooltip.ifll-dark .ifll-btn-custom:hover {
-  background: #22283A;
-  color: #7B9FD4;
-  border-color: #3A4A6B;
-}
-
-.ifll-tt-ai { padding: 4px 14px; }
-
-/* ── Regenerate button (circular arrow) ── */
-.ifll-tt-deep-header {
+.ifll-trans-panel.ifll-trans-error {
+  border-left-color: #C53030;
+  background: rgba(197, 48, 48, 0.06);
+  font-size: 0.85em;
   display: flex;
-  justify-content: flex-end;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 2px;
+  justify-content: space-between;
+  gap: 8px;
 }
-.ifll-btn-regen {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1.5px solid #C8C2B8;
+.ifll-trans-retry {
+  border: 1px solid currentColor;
   background: transparent;
+  color: inherit;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 13px;
-  color: #8A8580;
-  line-height: 18px;
-  text-align: center;
-  transition: all 0.15s;
-  padding: 0;
+  flex-shrink: 0;
+  opacity: 0.85;
 }
-.ifll-btn-regen:hover {
-  border-color: #2E5090;
-  color: #2E5090;
-  background: #F0EEF5;
-  transform: rotate(180deg);
+.ifll-trans-retry:hover {
+  opacity: 1;
 }
-.ifll-btn-regen-spinning {
-  animation: ifll-spin 0.8s linear infinite;
-  border-color: #2E5090 !important;
-  color: #2E5090 !important;
-}
-@keyframes ifll-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-/* ── Regen button: staggered rotation (spin → return → pause → repeat) ── */
-.ifll-btn-regen-loading {
-  animation: ifll-regen-loading 1.8s ease-in-out infinite;
-  border-color: #2E5090 !important;
-  color: #2E5090 !important;
-}
-@keyframes ifll-regen-loading {
-  0%   { transform: rotate(0deg); }
-  28%  { transform: rotate(360deg); }
-  40%  { transform: rotate(0deg); }
-  100% { transform: rotate(0deg); }
+.ifll-trans-panel.ifll-trans-hidden {
+  display: none !important;
 }
 
-/* ── Initial AI button: brightness pulse during loading ── */
-.ifll-btn-ai-loading {
-  animation: ifll-ai-pulse 1.2s ease-in-out infinite;
+@media (prefers-color-scheme: dark) {
+  .ifll-trans-panel {
+    background: rgba(126, 166, 224, 0.1);
+    border-left-color: #7EA6E0;
+  }
+  ::highlight(ifll-annotate) {
+    text-decoration-color: #7EA6E0;
+  }
 }
-@keyframes ifll-ai-pulse {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 1; }
-}
-
-.ifll-tooltip.ifll-dark .ifll-btn-regen { border-color: #3A3632; color: #8A8580; }
-.ifll-tooltip.ifll-dark .ifll-btn-regen:hover { border-color: #7B9FD4; color: #7B9FD4; background: #22283A; }
-.ifll-tooltip.ifll-dark .ifll-btn-regen-loading { border-color: #93B8E8 !important; color: #93B8E8 !important; }
-.ifll-tooltip.ifll-dark .ifll-btn-ai-loading { animation: ifll-ai-pulse-dark 1.2s ease-in-out infinite; }
-@keyframes ifll-ai-pulse-dark {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
-}
-
-/* ── Selection Toolbar ── */
-.ifll-sel-bar {
-  position: fixed;
-  z-index: 2147483640;
-  display: none;
-  gap: 1px;
-  background: #FAF9F7;
-  border: 1px solid #EBE7E3;
-  border-radius: 6px;
-  padding: 2px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  transform: translateY(-100%);
-}
-.ifll-sel-bar button {
-  min-width: 34px; padding: 0 8px;
-  height: 28px;
-  border: none; background: transparent;
-  font-size: 12px; color: #6B6560;
-  cursor: pointer; border-radius: 4px;
-  transition: all 0.12s;
-  white-space: nowrap;
-}
-.ifll-sel-bar button:hover { background: #E8EDF5; color: #2E5090; }
-.ifll-sel-tip {
-  padding: 6px 10px; font-size: 12px; color: #4A453F;
-  background: #FFFEFA; border-top: 1px solid #F2F0ED;
-  max-width: 300px; line-height: 1.5;
-}
-
-/* ── Floating ball ── */
-.ifll-float {
-  position: fixed; bottom: 24px; right: 24px; z-index: 2147483630;
-  width: 36px; height: 36px; border-radius: 50%;
-  background: #FAF9F7; border: 1.5px solid #D6D0C8;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all 0.25s; opacity: 0.85;
-}
-.ifll-float:hover { opacity: 1; transform: scale(1.08); }
-.ifll-float-icon {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: #2E5090; transition: all 0.25s;
-}
-.ifll-float-replace .ifll-float-icon { background: #2E5090; }
-.ifll-float-annotate .ifll-float-icon { background: #5A9E8F; }
-.ifll-float-translate .ifll-float-icon { background: #D4A84B; box-shadow: 0 0 4px rgba(212,168,75,0.5); }
-.ifll-float-off .ifll-float-icon { background: #D44; opacity: 0.5; }
-
-/* ── Copy button on examples ── */
-.ifll-btn-copy {
-  position: absolute; right: 4px; top: 4px;
-  width: 18px; height: 18px; padding: 0;
-  border: none; background: transparent;
-  font-size: 11px; color: #B0AAA3; cursor: pointer;
-  border-radius: 3px; transition: all 0.12s;
-  line-height: 18px; text-align: center;
-}
-.ifll-btn-copy:hover { background: #E8EDF5; color: #2E5090; }
-.ifll-tooltip.ifll-dark .ifll-btn-copy { color: #5A5550; }
-.ifll-tooltip.ifll-dark .ifll-btn-copy:hover { background: #2A2724; color: #7B9FD4; }

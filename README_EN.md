@@ -1,65 +1,39 @@
-# IFLL — Immersive Foreign Language Learning
+# IFLL — Immersive Foreign Language Learning & Bilingual Translator
 
-A Chrome MV3 browser extension that replaces Chinese words with English equivalents on any webpage, creating an immersive language learning experience.
+A Manifest V3 browser extension (Chrome / Edge / Firefox) for immersive English learning and bilingual web translation — zero build tools, local-first privacy, modular Vanilla JS.
 
-[中文 README](README.md) | English
+[中文文档](README.md) | English
 
 ## Features
 
-- **4 Modes**: Replace (Chinese→English), Annotate (hover tooltip), Translate (sentence-level), Off
-- **3,626-word Bank**: Curated bilingual vocabulary with IPA phonetics (90% coverage)
-- **Smart Tooltip**: Click any replaced word for definition, examples, AI deep analysis, custom actions
-- **AI-Powered**: Synonym/antonym/collocation analysis and example sentence generation via DeepSeek API
-- **Spaced Repetition**: SM-2 algorithm with daily review scheduling
-- **Daily New Words**: Soft-capped daily word discovery to avoid overwhelm
-- **PDF Translation**: Full-document translation support
-- **Export/Import**: Learning progress, word lists, and settings
-- **Custom AI Actions**: Define your own prompts with `{word}`, `{zh}`, `{def}` placeholders
-- **Batch Preprocessing**: Pre-fetch AI analysis for N words ahead of time
-- **Notebase**: IndexedDB-powered searchable vocabulary knowledge base
-- **Floating Ball**: Quick mode toggle without opening the popup
+- **Smart Replace Mode (Chinese pages)**: Native `Intl.Segmenter` word-boundary segmentation + collocation phrase priority + SM-2 due & daily word boosting, supporting both **inline swap** and **bilingual (`学习(study)`)** styles, 260ms hover mini-preview, and 100% lossless restoration.
+- **Lemmatized Annotate Mode (English pages)**: Built-in English lemmatizer (irregular forms + suffixes), zero-DOM-mutation CSS Custom Highlight API, viewport-lazy `IntersectionObserver` loading, SPA route-change awareness, and level-aware filtering.
+- **Micro-Batched Bilingual Translation**: Viewport-triggered paragraph & heading translation that bundles up to 4 blocks per LLM call with `document.title` context (cutting input tokens by 60%+), persistent IndexedDB cross-tab cache, show/hide toggle, and optional **zero-key free fallback**.
+- **Input Box Quick Translation (Read + Write Loop)**: Press `Space × 3` rapidly or `Alt + Y` inside any Chinese text input/textarea to replace with natural English + 1-click Undo.
+- **Shadow DOM Isolated UI + Context Menus**: Word card with real webpage **context sentence & contextual AI meaning**, direct Selection Word Card lookup, floating mode capsule, and right-click context menu shortcuts.
+- **Learning Center Dashboard**: Light & Dark theme, **30-day learning heatmap & streak tracking**, **3 active recall modes** (Flashcard / Listening-Spelling / Context Cloze), bulk vocabulary import (TXT/CSV/TSV), 1-click **Anki TSV export**, toolbar due-review badge, and `chrome.alarms`-resumable Service Worker batch pre-processing.
+- **Cleaned Lazy-Loaded Wordbank**: 5,649 verified bilingual entries across Daily / CET-4 / CET-6 / IELTS / Graduate tiers with repaired IPA schwa transcriptions, loaded on demand from `src/data/wordbank.json`.
 
 ## Installation
 
-1. Clone or download the repository
-2. Open `chrome://extensions`
-3. Enable "Developer mode"
-4. Click "Load unpacked" and select the `src` folder
+1. Clone or download this repository.
+2. **Chrome / Edge**: open `chrome://extensions` → enable **Developer mode** → click **Load unpacked** → select the **repository root folder** (where `manifest.json` lives).
+3. **Firefox 125+**: open `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** → select `manifest.json`.
 
-## API Configuration
+### Keyboard Shortcuts
 
-IFLL supports multiple AI providers:
-- **DeepSeek** — `https://api.deepseek.com` (native, supports `/models` endpoint)
-- **OpenAI** — `https://api.openai.com/v1`
-- **OpenRouter** — `https://openrouter.ai/api/v1`
-- **OpenCode Go** — `https://opencode.ai/zen/go/v1` (proxy, no `/models`)
-- **Custom** — any OpenAI-compatible endpoint
+- `Alt + T`: Toggle bilingual translation / hide-show translated blocks
+- `Alt + M`: Cycle learning mode (Replace / Annotate / Translate / Off)
+- `Alt + Y` or `Space × 3` in text inputs: Translate typed Chinese into English with 1-click Undo
+- `Esc`: Dismiss word card or selection toolbar
 
-Get your API key from your provider's dashboard.
+## Testing & Verification
 
-## Project Structure
-
-```
-src/
-├── lib/
-│   ├── injector.js    — DOM injection engine, Aho-Corasick matching
-│   ├── storage.js     — chrome.storage wrapper with defaults
-│   ├── wordbank.js    — 3,626-word bilingual vocabulary bank
-│   └── ...
-├── content/
-│   ├── content.js     — Page script: mode detection, selection toolbar
-│   └── content.css    — In-page styles: tooltip, toolbar, floating ball
-├── background/
-│   └── background.js  — Service worker: AI API calls, model management
-├── popup/
-│   ├── popup.html     — Extension popup: settings, stats, batch processing
-│   ├── popup.js       — Popup logic: mode switching, API config, import/export
-│   └── popup.css      — Popup styles: literary minimalism design
-└── manifest.json      — Chrome MV3 manifest
+```bash
+./prepush-check.sh       # Syntax checks + manifest checks + 25 unit/integrity tests
+python3 tests/e2e.py     # Real Chromium MV3 end-to-end verification (Playwright)
 ```
 
 ## License
 
-GPL v3. See [LICENSE](LICENSE) for details.
-
-All user data is stored locally on the device. No data is ever sent to external servers except the user-configured AI API endpoint.
+GPL v3. See [LICENSE](LICENSE). All user data and API credentials stay on your device.

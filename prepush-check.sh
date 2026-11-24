@@ -1,56 +1,67 @@
 #!/usr/bin/env bash
-# IFLL pre-push check — run before every push
+# IFLL pre-push verification script
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR"
 
 fail=0
-check() { if ! eval "$1"; then echo "  ❌ $2"; fail=1; else echo "  ✅ $2"; fi; }
+check() {
+  if ! eval "$1"; then
+    echo "  FAIL: $2"
+    fail=1
+  else
+    echo "  PASS: $2"
+  fi
+}
 
-echo "=== IFLL pre-push check ==="
+echo "=== IFLL v0.4 pre-push check ==="
 
-# 1. Syntax
-for f in src/lib/*.js src/content/*.js src/background/*.js src/popup/*.js; do
-  node --check "$f" 2>&1 | grep -q Error && echo "  ❌ $f" && fail=1 || echo "  ✅ $f"
+# 1. JS syntax validation across all modules
+for f in src/shared/*.js src/background/*.js src/content/*.js src/popup/*.js src/dashboard/*.js; do
+  if node --check "$f" 2>/dev/null; then
+    echo "  PASS: syntax $f"
+  else
+    echo "  FAIL: syntax $f"
+    fail=1
+  fi
 done
+check "python3 -m py_compile scripts/clean_wordbank.py tests/e2e.py" "python scripts syntax"
 
-# 2. wordbank.js loaded in popup.html
-check "grep -q 'wordbank.js' src/popup/popup.html" \
-  "popup.html loads wordbank.js"
+# 2. JSON validity
+check "node -e 'JSON.parse(require(\"fs\").readFileSync(\"manifest.json\",\"utf8\"))'" "manifest.json valid JSON"
+check "node -e 'JSON.parse(require(\"fs\").readFileSync(\"src/data/wordbank.json\",\"utf8\"))'" "wordbank.json valid JSON"
+check "node -e 'JSON.parse(require(\"fs\").readFileSync(\"src/data/wordbank-meta.json\",\"utf8\"))'" "wordbank-meta.json valid JSON"
 
-# 3. Script order correct (wordbank → storage → popup)
-check "grep -A2 'script src' src/popup/popup.html | grep 'wordbank' | head -1" \
-  "popup.html: wordbank before storage"
+# 3. Manifest references exist
+check "node -e '
+const fs = require(\"fs\");
+const m = JSON.parse(fs.readFileSync(\"manifest.json\", \"utf8\"));
+const files = [
+  m.action.default_popup,
+  m.background.service_worker,
+  ...m.content_scripts.flatMap(cs => [...(cs.js || []), ...(cs.css || [])]),
+  ...m.web_accessible_resources.flatMap(r => r.resources || [])
+];
+for (const f of files) {
+  if (!fs.existsSync(f)) { console.error(\"Missing:\", f); process.exit(1); }
+}
+'" "manifest.json referenced files exist"
 
-# 4. No CSS duplicate blocks
-check 'test $(grep -c "^\.ifll-btn-ai {" src/content/content.css) -le 1' \
-  "content.css: single .ifll-btn-ai declaration"
-
-# 5. No decorative emoji in tooltip
-check '! grep -Pn "\x{1F600}-\x{1F64F}|\x{1F300}-\x{1F5FF}|\x{1F680}-\x{1F6FF}|\x{1F900}-\x{1F9FF}" src/lib/injector.js | grep -v "//" || true' \
-  "injector.js: no decorative emoji"
-
-# 6. Key features present
-check "grep -q 'IFLL_LIST_MODELS' src/background/background.js" "listModels handler"
-check "grep -q 'apiEndpoint' src/popup/popup.html" "API endpoint select"
-check "grep -q 'refreshModels' src/popup/popup.js" "refresh models button"
-check "grep -q 'modeSelector' src/popup/popup.html" "mode selector"
-check "grep -q 'fetchCombinedAnalysis' src/lib/injector.js" "combined analysis"
-check "grep -q 'onInstalled' src/background/background.js" "onInstalled handler"
-
-# 7. Default model is deepseek-v4-flash (not deepseek-chat)
-check "grep -q \"deepseek-v4-flash\" src/popup/popup.html" \
-  "popup.html: default model is deepseek-v4-flash"
-
-# 8. No duplicate function declarations
-check '! (grep -Pc "^async function \w+.*" src/background/background.js | sort | uniq -c | awk '\''$1>1'\'' | grep -q . 2>/dev/null)' \
-  "background.js: no duplicate function declarations"
+# 4. Run full automated unit & integrity test suite
+echo ""
+echo "=== Running automated tests ==="
+if node --test tests/*.test.mjs; then
+  echo "  PASS: unit tests"
+else
+  echo "  FAIL: unit tests"
+  fail=1
+fi
 
 echo ""
 if [ $fail -eq 0 ]; then
-  echo "✅ All checks passed"
+  echo "All checks passed."
   exit 0
 else
-  echo "❌ $fail check(s) failed — fix before pushing"
+  echo "$fail check(s) failed."
   exit 1
 fi

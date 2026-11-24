@@ -1,4 +1,3 @@
-<!-- IFLL popup — literary minimalism -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -11,204 +10,234 @@
 <div class="p-container">
 
   <!-- Header -->
-  <div class="p-header">
-    <span class="p-logo">IFLL</span>
-    <span class="p-subtitle">Immersive Learning</span>
-  </div>
+  <header class="p-header">
+    <div class="p-brand">
+      <span class="p-logo">IFLL</span>
+      <span class="p-subtitle">Immersive Learning</span>
+    </div>
+    <div class="p-header-actions">
+      <button id="openReviewBtn" class="p-review-pill" style="display:none" title="进入 SM-2 闪卡复习">
+        待复习 <strong id="reviewBadge">0</strong>
+      </button>
+      <button id="openDashboardBtn" class="p-btn p-btn-sm" title="打开学习中心">学习中心</button>
+    </div>
+  </header>
 
-  <!-- Toggle -->
+  <!-- Master Toggle + Current Host -->
   <div class="p-toggle-bar">
     <label class="p-toggle">
       <input type="checkbox" id="enabled" checked>
       <span class="p-toggle-track"><span class="p-toggle-knob"></span></span>
       <span class="p-toggle-label" id="toggleLabel">已开启</span>
     </label>
-    <span id="reviewCount" style="display:none">
-      <span class="p-review-badge" id="reviewBadge">0</span>
-    </span>
+    <span class="p-host-chip" id="currentHost" title="">—</span>
   </div>
 
-  <!-- Mode selector -->
+  <!-- Mode Selector (per active site) -->
   <div class="p-mode-bar">
     <div class="p-mode-selector" id="modeSelector">
-      <button class="p-mode-btn p-mode-active" data-mode="replace">替换学习</button>
+      <button class="p-mode-btn" data-mode="replace">替换学习</button>
       <button class="p-mode-btn" data-mode="annotate">标注学习</button>
       <button class="p-mode-btn" data-mode="translate">对比翻译</button>
-      <button class="p-mode-btn" data-mode="off">关闭</button>
+      <button class="p-mode-btn" data-mode="off">关闭本页</button>
     </div>
+    <div class="p-shortcuts-hint" id="modeStatusHint">Alt+T 翻译 · Alt+M 切模式 · Alt+Y / 三连空格译输入框</div>
   </div>
 
-  <!-- Settings -->
-  <div class="p-section">
-    <div class="p-row">
-      <label class="p-label" for="frequency">替换密度</label>
-      <select id="frequency" class="p-select">
-        <option value="low">低</option>
-        <option value="medium" selected>中</option>
-        <option value="high">高</option>
-      </select>
+  <!-- Core Learning Settings -->
+  <section class="p-section">
+    <div class="p-grid-2">
+      <div class="p-field">
+        <label class="p-label" for="level">词汇等级</label>
+        <select id="level" class="p-select">
+          <option value="daily">日常基础</option>
+          <option value="cet4">CET-4</option>
+          <option value="cet6">CET-6</option>
+          <option value="ielts">IELTS</option>
+          <option value="graduate">考研</option>
+        </select>
+      </div>
+      <div class="p-field">
+        <label class="p-label" for="frequency">替换密度</label>
+        <select id="frequency" class="p-select">
+          <option value="low">低</option>
+          <option value="medium">中</option>
+          <option value="high">高</option>
+        </select>
+      </div>
+      <div class="p-field">
+        <label class="p-label" for="replaceStyle">替换显示</label>
+        <select id="replaceStyle" class="p-select">
+          <option value="inline">纯英文替换</option>
+          <option value="bilingual">中英并列</option>
+        </select>
+      </div>
+      <div class="p-field">
+        <label class="p-label" for="annotateStrategy">标注策略</label>
+        <select id="annotateStrategy" class="p-select">
+          <option value="target_and_above">聚焦高难词</option>
+          <option value="all_up_to_target">含基础词</option>
+        </select>
+      </div>
+      <div class="p-field">
+        <label class="p-label" for="sitePolicy">新站策略</label>
+        <select id="sitePolicy" class="p-select">
+          <option value="auto">按语言自动</option>
+          <option value="prompt">首次轻提示</option>
+          <option value="manual">仅手动启用</option>
+        </select>
+      </div>
+      <div class="p-field">
+        <label class="p-label" for="tooltipTheme">主题风格</label>
+        <select id="tooltipTheme" class="p-select">
+          <option value="auto">自动适配</option>
+          <option value="light">明亮</option>
+          <option value="dark">暗黑</option>
+        </select>
+      </div>
     </div>
-    <div class="p-row">
-      <label class="p-label" for="level">词汇等级</label>
-      <select id="level" class="p-select">
-        <option value="cet4" selected>CET-4</option>
-        <option value="cet6">CET-6</option>
-        <option value="ielts">IELTS</option>
-        <option value="graduate">考研</option>
-      </select>
-    </div>
-    <div class="p-row">
-      <label class="p-label" for="dailyCount">每日新词</label>
-      <select id="dailyCount" class="p-select">
+    <div class="p-row p-row-mt">
+      <label class="p-label" for="dailyCount">每日新词目标</label>
+      <select id="dailyCount" class="p-select p-select-inline">
         <option value="5">5 词</option>
         <option value="10">10 词</option>
-        <option value="15" selected>15 词</option>
+        <option value="15">15 词</option>
         <option value="20">20 词</option>
         <option value="30">30 词</option>
       </select>
     </div>
-  </div>
-
-  <!-- Stats -->
-  <div class="p-section" id="statsSection">
-    <div class="p-section-header">今日统计</div>
-    <div class="p-stats">
-      <div class="p-stat"><span class="p-stat-num" id="statReplace">0</span><span class="p-stat-label">替换词数</span></div>
-      <div class="p-stat"><span class="p-stat-num" id="statAnnotate">0</span><span class="p-stat-label">标注词数</span></div>
-      <div class="p-stat"><span class="p-stat-num" id="statTranslate">0</span><span class="p-stat-label">翻译(百字)</span></div>
-      <div class="p-stat"><span class="p-stat-num" id="statMinutes">0</span><span class="p-stat-label">累计学习</span></div>
+    <div class="p-check-row">
+      <label class="p-check"><input type="checkbox" id="enableHoverPreview" checked> 悬停速览</label>
+      <label class="p-check"><input type="checkbox" id="enableSelToolbar" checked> 划词栏</label>
+      <label class="p-check"><input type="checkbox" id="showFloatBall" checked> 悬浮胶囊</label>
     </div>
-  </div>
+    <div class="p-check-row">
+      <label class="p-check"><input type="checkbox" id="enableInputTranslate" checked> 输入框三连空格译英</label>
+      <label class="p-check"><input type="checkbox" id="enableFreeTranslateFallback" checked> 免Key免费翻译兜底</label>
+    </div>
+  </section>
 
-  <div class="p-section">
-    <div class="p-section-header">词库</div>
-    <div class="p-stats">
-      <div class="p-stat"><span class="p-stat-num" id="statWordbank">0</span><span class="p-stat-label">收录词汇</span></div>
-      <div class="p-stat"><span class="p-stat-num" id="statIpa">0</span><span class="p-stat-label">IPA 覆盖</span></div>
+  <!-- Compact Stats -->
+  <section class="p-section">
+    <div class="p-section-header">
+      <span>今日学习 &amp; 词库</span>
+      <span class="p-meta-inline" id="wordbankSummary">加载中…</span>
+    </div>
+    <div class="p-stats-4">
+      <div class="p-stat"><span class="p-stat-num" id="statLearned">0</span><span class="p-stat-label">今日学习</span></div>
+      <div class="p-stat"><span class="p-stat-num" id="statReplace">0</span><span class="p-stat-label">替换/标注</span></div>
       <div class="p-stat"><span class="p-stat-num" id="statKnown">0</span><span class="p-stat-label">已掌握</span></div>
-      <div class="p-stat"><span class="p-stat-num" id="statReview">0</span><span class="p-stat-label">复习中</span></div>
+      <div class="p-stat"><span class="p-stat-num" id="statReview">0</span><span class="p-stat-label">复习队列</span></div>
     </div>
-  </div>
+  </section>
 
-  <div class="p-section">
-    <div class="p-section-header">词库预处理</div>
-    <div class="p-batch">
-      <div class="p-batch-row">
-        <span class="p-batch-label">预生成深度解析</span>
-        <input type="number" id="batchCount" class="p-input p-input-sm" value="100" min="10" max="1000" style="width:60px">
-        <span class="p-batch-label">词</span>
-        <button id="batchStart" class="p-btn p-btn-sm">开始</button>
-        <button id="batchStop" class="p-btn p-btn-sm p-btn-ghost" style="display:none">停止</button>
-      </div>
-      <div class="p-batch-progress" id="batchProgress" style="display:none">
-        <div class="p-batch-bar"><div class="p-batch-fill" id="batchFill"></div></div>
-        <span class="p-batch-text" id="batchText">0/0</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Excluded sites -->
-  <div class="p-section">
-    <div class="p-row">
-      <span class="p-label">弹窗主题</span>
-      <select id="tooltipTheme" class="p-select">
-        <option value="auto">自动</option>
-        <option value="light">明亮</option>
-        <option value="dark">暗黑</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="p-section">
+  <!-- Excluded Sites -->
+  <section class="p-section">
     <div class="p-row">
       <span class="p-label">排除站点</span>
       <button id="excludeCurrent" class="p-btn p-btn-sm p-btn-danger">排除当前</button>
     </div>
     <div class="p-excluded-list" id="excludedList"></div>
-  </div>
+  </section>
 
-  <!-- Custom AI actions -->
-  <details class="p-api">
-    <summary>自定义 AI 动作</summary>
-    <p class="p-api-hint">自定义提示词模板。{word} {zh} {def} 为占位符。</p>
-    <div id="customActionsList" class="p-actions-list"></div>
-    <div class="p-batch-row" style="margin-top:6px">
-      <input type="text" id="actName" class="p-input p-input-sm" placeholder="动作名称" style="flex:1">
-      <button id="actAdd" class="p-btn p-btn-sm">+ 添加</button>
-    </div>
-    <div id="actEditor" style="display:none;margin-top:6px">
-      <textarea id="actPrompt" class="p-textarea" rows="3" placeholder="提示词模板，如: 用简单中文解释 {word}" style="width:100%;margin-top:2px"></textarea>
-      <input type="text" id="actFields" class="p-input" placeholder="输出字段(逗号分隔，如: synonyms,usage)" style="width:100%;margin-top:4px">
-      <div class="p-batch-row" style="margin-top:4px">
-        <button id="actSave" class="p-btn p-btn-sm">保存</button>
-        <button id="actDel" class="p-btn p-btn-sm p-btn-ghost">删除</button>
-        <span id="actEditId" style="display:none"></span>
-      </div>
-    </div>
-  </details>
-
-  <!-- API settings -->
-  <details class="p-api">
-    <summary>API 设置</summary>
-    <p class="p-api-hint">配置 AI API 后可点击替换词获取深度解析与例句。仅用于主动触发的 AI 功能。</p>
+  <!-- API Settings -->
+  <details class="p-details" id="apiDetails">
+    <summary>AI API 设置 <span class="p-api-dot" id="apiStatusDot"></span></summary>
+    <p class="p-hint">配置 OpenAI 兼容接口后，启用对比翻译、划词解释、AI 深度解析与后台预处理。密钥仅保存在本地并由后台服务直接调用。</p>
     <div class="p-row">
-      <label class="p-label" for="apiEndpoint">API 地址</label>
-      <select id="apiEndpoint" class="p-select">
+      <label class="p-label" for="apiEndpoint">服务商</label>
+      <select id="apiEndpoint" class="p-select p-select-grow">
         <option value="https://api.deepseek.com">DeepSeek</option>
-        <option value="https://opencode.ai/zen/go/v1">OpenCode Go</option>
         <option value="https://api.openai.com/v1">OpenAI</option>
         <option value="https://openrouter.ai/api/v1">OpenRouter</option>
-        <option value="__custom__">自定义</option>
+        <option value="https://opencode.ai/zen/go/v1">OpenCode Go</option>
+        <option value="__custom__">自定义端点</option>
       </select>
     </div>
-    <div id="apiEndpointCustomRow" style="display:none">
+    <div id="apiEndpointCustomRow" style="display:none;margin-bottom:6px">
       <input type="text" id="apiEndpointCustom" class="p-input" placeholder="https://your-api.com/v1">
     </div>
     <div class="p-row">
-      <label class="p-label" for="apiModel">模型名称</label>
-      <select id="apiModel" class="p-select" style="flex:1">
-        <option value="deepseek-v4-flash">deepseek-v4-flash</option>
-      </select>
-      <button id="refreshModels" class="p-btn p-btn-sm" style="flex-shrink:0">刷新</button>
+      <label class="p-label" for="apiModel">模型</label>
+      <input type="text" id="apiModel" list="modelDatalist" class="p-input p-input-inline" placeholder="输入或选择模型名">
+      <datalist id="modelDatalist"></datalist>
+      <button id="refreshModels" class="p-btn p-btn-sm" style="flex-shrink:0">拉取</button>
     </div>
     <div class="p-row">
       <label class="p-label" for="apiKey">API Key</label>
-      <input type="password" id="apiKey" class="p-input" placeholder="sk-...">
+      <input type="password" id="apiKey" class="p-input p-input-inline" placeholder="sk-...">
     </div>
+    <div class="p-api-msg" id="apiMsg"></div>
     <div class="p-row">
       <button id="testApi" class="p-btn p-btn-sm">测试连接</button>
-      <button id="saveApi" class="p-btn p-btn-sm p-btn-primary">保存</button>
+      <button id="saveApi" class="p-btn p-btn-sm p-btn-primary">保存配置</button>
     </div>
   </details>
 
-  <!-- Voice settings -->
-  <details class="p-api">
-    <summary>发音设置</summary>
-    <p class="p-api-hint">选择朗读单词的发音引擎</p>
+  <!-- Background Batch Pre-processing -->
+  <details class="p-details" id="batchDetails">
+    <summary>后台词库预处理</summary>
+    <p class="p-hint">在后台 Service Worker 中运行，关闭弹窗也不会中断。</p>
     <div class="p-row">
-      <label class="p-label" for="voiceSelect">发音风格</label>
-      <select id="voiceSelect" class="p-select" style="flex:1">
+      <span class="p-label">数量</span>
+      <input type="number" id="batchCount" class="p-input p-input-sm" value="50" min="5" max="500" style="width:68px">
+      <select id="batchLevel" class="p-select" style="flex:1">
+        <option value="all">全部等级</option>
+        <option value="cet4">CET-4</option>
+        <option value="cet6">CET-6</option>
+        <option value="ielts">IELTS</option>
+        <option value="graduate">考研</option>
+      </select>
+      <button id="batchStart" class="p-btn p-btn-sm p-btn-primary">开始</button>
+      <button id="batchStop" class="p-btn p-btn-sm p-btn-danger" style="display:none">停止</button>
+    </div>
+    <div class="p-batch-progress" id="batchProgress" style="display:none">
+      <div class="p-batch-bar"><div class="p-batch-fill" id="batchFill"></div></div>
+      <span class="p-batch-text" id="batchText">0/0</span>
+    </div>
+    <div class="p-batch-msg" id="batchMsg"></div>
+  </details>
+
+  <!-- Voice Settings -->
+  <details class="p-details">
+    <summary>发音设置</summary>
+    <div class="p-row" style="margin-top:6px">
+      <label class="p-label" for="voiceSelect">英语发音</label>
+      <select id="voiceSelect" class="p-select p-select-grow">
         <option value="">系统默认</option>
       </select>
+      <button id="testVoice" class="p-btn p-btn-sm">试听</button>
     </div>
+    <div class="p-row">
+      <label class="p-label" for="voiceRate">语速 (<span id="voiceRateVal">0.9</span>x)</label>
+      <input type="range" id="voiceRate" min="0.6" max="1.4" step="0.05" value="0.9" style="flex:1">
+    </div>
+  </details>
+
+  <!-- Backup / Import -->
+  <details class="p-details">
+    <summary>数据导入 / 导出</summary>
+    <div class="p-row" style="margin-top:6px">
+      <label class="p-check"><input type="checkbox" id="exportIncludeKey"> 导出时包含 API Key</label>
+    </div>
+    <div class="p-row">
+      <button id="exportConfig" class="p-btn p-btn-sm" style="flex:1">导出配置</button>
+      <button id="importConfig" class="p-btn p-btn-sm" style="flex:1">导入配置</button>
+      <input type="file" id="importFileInput" style="display:none" accept=".json">
+    </div>
+    <div class="p-api-msg" id="ioMsg"></div>
   </details>
 
   <!-- Footer -->
-  <div class="p-footer">
-    <button id="refreshPage" class="p-btn p-btn-sm">刷新当前页</button>
-  </div>
-  <div class="p-footer p-footer-io">
-    <button id="exportConfig" class="p-btn-ghost">导出配置</button>
-    <button id="importConfig" class="p-btn-ghost">导入配置</button>
-    <input type="file" id="importFileInput" style="display:none" accept=".json">
-  </div>
-  <div class="p-footer p-footer-privacy">
-    <span>数据均储存在本机，代码开源</span>
-  </div>
+  <footer class="p-footer">
+    <button id="refreshPage" class="p-btn-link">刷新当前页</button>
+    <span class="p-privacy">本地存储 · GPL v3</span>
+  </footer>
 
 </div>
-<script src="../lib/wordbank.js"></script>
-<script src="../lib/storage.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/utils.js"></script>
+<script src="../shared/storage.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>
