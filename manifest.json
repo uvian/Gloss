@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "IFLL — Immersive English Learning",
-  "version": "0.5.1",
-  "description": "Immersive English learning & bilingual web translation — smart inline swap, lemmatized annotation, micro-batch bilingual translation, input translation, and SM-2 active recall.",
+  "name": "Gloss — 网页沉浸学英语与翻译",
+  "version": "0.5.2",
+  "description": "Gloss — 网页沉浸式英语学习与双语翻译助手：智能行内替换、词元标注、微批双语翻译、输入框译英与 SM-2 主动回忆训练。",
   "permissions": [
     "storage",
     "contextMenus",
@@ -14,7 +14,7 @@
   ],
   "action": {
     "default_popup": "src/popup/popup.html",
-    "default_title": "IFLL",
+    "default_title": "Gloss",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

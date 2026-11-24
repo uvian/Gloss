@@ -437,7 +437,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ifll-anki-${activeVocabSub}-${utils.getLocalDateStr()}.tsv`;
+    a.download = `gloss-anki-${activeVocabSub}-${utils.getLocalDateStr()}.tsv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 3000);
   });

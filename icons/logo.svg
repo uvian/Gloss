@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <defs>
+    <linearGradient id="gloss-bg" x1="16" y1="6" x2="112" y2="124" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#365DA6"/>
+      <stop offset="55%" stop-color="#284782"/>
+      <stop offset="100%" stop-color="#192F5A"/>
+    </linearGradient>
+    <radialGradient id="gloss-sheen" cx="36" cy="24" r="84" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gloss-ivory" x1="28" y1="22" x2="90" y2="106" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFDF9"/>
+      <stop offset="100%" stop-color="#EFE8DC"/>
+    </linearGradient>
+    <linearGradient id="gloss-gold" x1="60" y1="60" x2="100" y2="72" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F9D57C"/>
+      <stop offset="100%" stop-color="#E39E2E"/>
+    </linearGradient>
+    <filter id="gloss-shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="2.5" stdDeviation="2.5" flood-color="#0D1A36" flood-opacity="0.34"/>
+    </filter>
+  </defs>
+
+  <rect x="2" y="2" width="124" height="124" rx="28" fill="url(#gloss-bg)"/>
+  <rect x="2" y="2" width="124" height="124" rx="28" fill="url(#gloss-sheen)"/>
+  <rect x="3.25" y="3.25" width="121.5" height="121.5" rx="26.75" stroke="#FFFFFF" stroke-opacity="0.15" stroke-width="1.5"/>
+
+  <g filter="url(#gloss-shadow)">
+    <path fill="url(#gloss-ivory)" d="
+      M 88.2 42.0
+      C 82.8 35.8, 74.8 32.0, 64.8 32.0
+      C 48.0 32.0, 36.8 44.6, 36.8 64.0
+      C 36.8 83.4, 48.0 96.0, 65.2 96.0
+      C 74.2 96.0, 81.6 92.8, 86.4 87.8
+      L 86.4 76.2
+      C 86.4 75.4, 87.0 74.8, 87.8 74.8
+      L 98.0 74.8
+      C 98.8 74.8, 99.4 75.4, 99.4 76.2
+      L 99.4 91.6
+      C 92.0 100.6, 79.8 106.4, 64.6 106.4
+      C 39.8 106.4, 23.0 89.2, 23.0 64.0
+      C 23.0 38.8, 40.0 21.6, 65.0 21.6
+      C 78.8 21.6, 89.8 26.6, 97.0 34.4
+      C 97.6 35.1, 97.5 36.1, 96.8 36.7
+      L 90.4 42.3
+      C 89.7 42.9, 88.8 42.7, 88.2 42.0 Z
+    "/>
+    <rect x="61.4" y="60.0" width="38.0" height="11.2" rx="5.6" fill="url(#gloss-gold)"/>
+    <path fill="#FAE098" d="
+      M 93.2 44.6
+      Q 93.2 50.8 99.4 50.8
+      Q 93.2 50.8 93.2 57.0
+      Q 93.2 50.8 87.0 50.8
+      Q 93.2 50.8 93.2 44.6 Z
+    "/>
+  </g>
+</svg>

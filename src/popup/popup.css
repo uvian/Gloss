@@ -59,9 +59,10 @@ body {
   margin-bottom: 10px;
   border-bottom: 1px solid var(--c-border-soft);
 }
-.p-brand { display: flex; align-items: baseline; gap: 7px; }
-.p-logo { font-size: 18px; font-weight: 700; color: var(--c-accent); letter-spacing: -0.3px; }
-.p-subtitle { font-size: 10px; color: var(--c-text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.p-brand { display: flex; align-items: center; gap: 7px; }
+.p-logo-mark { width: 22px; height: 22px; border-radius: 5px; flex-shrink: 0; display: block; }
+.p-logo { font-size: 18px; font-weight: 750; color: var(--c-accent); letter-spacing: -0.4px; line-height: 1; }
+.p-subtitle { font-size: 10px; color: var(--c-text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 .p-header-actions { display: flex; align-items: center; gap: 6px; }
 
 .p-review-pill {

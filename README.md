@@ -1,6 +1,6 @@
-# IFLL — 沉浸式英语学习与辅助翻译浏览器扩展
+# <img src="icons/logo.svg" width="30" height="30" align="absmiddle" alt="Gloss"> Gloss — 网页沉浸学英语与翻译
 
-**IFLL（Immersive Foreign Language Learning）** 是一款基于 Manifest V3（**Chrome / Edge / Firefox 桌面端 & Firefox 安卓端**）、零构建依赖、本地隐私优先的网页英语学习与双语翻译插件。
+**Gloss**（原 IFLL）是一款基于 Manifest V3（**Chrome / Edge / Firefox 桌面端 & Firefox 安卓端**）、零构建依赖、本地隐私优先的网页英语学习与双语翻译浏览器扩展。
 
 ## 核心特性
 
@@ -17,7 +17,7 @@
 1. **Chrome / Edge / Brave（桌面）**：打开 `chrome://extensions` → 开启右上角「开发者模式」→ 点击「加载已解压的扩展程序」→ 选择本仓库**根目录**。
 2. **Firefox 桌面端（140+）**：打开 `about:debugging#/runtime/this-firefox` → 点击「临时载入附加组件」→ 选择根目录下的 `manifest.json`。
 3. **Firefox 安卓端（142+）**：
-   - 运行 `./scripts/pack-firefox.sh` 生成 `dist/ifll-firefox-v*.xpi`。
+   - 运行 `./scripts/pack-firefox.sh` 生成 `dist/gloss-firefox-v*.xpi`。
    - **长期使用（推荐）**：登录 [Mozilla Add-on Developer Hub](https://addons.mozilla.org/developers/) 提交扩展并选择 **自行分发（On your own / Unlisted）**，几分钟即可下载 Mozilla 官方自动签名后的 `.xpi`；在手机 Firefox 中进入「设置 → 关于 Firefox → 连点 5 次 Firefox Logo 开启调试模式 → 返回设置 → **从文件安装扩展**」选择已签名的 `.xpi` 即可。
    - **USB 临时调试**：手机 Firefox 开启「通过 USB 远程调试」，电脑端执行 `npx web-ext run -t firefox-android --android-device <device_id>`。
 

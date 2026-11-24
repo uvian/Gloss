@@ -543,9 +543,9 @@
         el('span', { text: '学习中心' }), makeIcon('book')
       )
     );
-    _floatPill = el('button', { className: 'float-pill', type: 'button', title: 'IFLL 快捷切换' },
+    _floatPill = el('button', { className: 'float-pill', type: 'button', title: 'Gloss 快捷切换' },
       el('span', { className: 'float-dot dot-off' }),
-      el('span', { className: 'float-label', text: 'IFLL' })
+      el('span', { className: 'float-label', text: 'Gloss' })
     );
     _floatWrap = el('div', { className: 'float-wrap' }, _floatMenu, _floatPill);
 
@@ -1381,7 +1381,7 @@
     _floatWrap.style.display = show ? 'flex' : 'none';
     if (!show) return;
 
-    const shortLabel = { replace: '替换', annotate: '标注', translate: '翻译', off: '关' }[mode] || 'IFLL';
+    const shortLabel = { replace: '替换', annotate: '标注', translate: '翻译', off: '关' }[mode] || 'Gloss';
     _floatPill.querySelector('.float-dot').className = 'float-dot dot-' + mode;
     _floatPill.querySelector('.float-label').textContent = shortLabel;
 
@@ -1398,7 +1398,7 @@
     const el = IFLL.utils.createEl;
     return new Promise((resolve) => {
       const bar = el('div', { className: 'prompt-bar' },
-        el('span', { className: 'prompt-title', text: 'IFLL · 选择当前页面学习模式' }),
+        el('span', { className: 'prompt-title', text: 'Gloss · 选择当前页面学习模式' }),
         el('div', { className: 'prompt-actions' },
           el('button', { className: `prompt-btn${defaultSuggestedMode === 'replace' ? ' primary' : ''}`, dataset: { m: 'replace' }, text: '替换' }),
           el('button', { className: `prompt-btn${defaultSuggestedMode === 'annotate' ? ' primary' : ''}`, dataset: { m: 'annotate' }, text: '标注' }),

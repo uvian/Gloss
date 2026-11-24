@@ -635,7 +635,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ifll-backup-${utils.getLocalDateStr()}.json`;
+    a.download = `gloss-backup-${utils.getLocalDateStr()}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 3000);
     setMsg(els.ioMsg, '配置已导出', 'ok');

@@ -124,7 +124,7 @@ test('buildAnkiTsv formats clean 5-column TSV without raw tabs/newlines', () => 
   assert.match(cols[1], /范式 — a typical example/);
   assert.equal(cols[2], '/ˈpærədaɪm/');
   assert.equal(cols[3], 'A new paradigm shifted.');
-  assert.equal(cols[4], 'IFLL ielts');
+  assert.equal(cols[4], 'Gloss ielts');
 });
 
 test('computeStreak calculates consecutive active days accurately', () => {

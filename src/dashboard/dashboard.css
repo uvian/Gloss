@@ -71,9 +71,10 @@ body {
   border-bottom: 1px solid var(--border); flex-wrap: wrap;
 }
 .d-topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.d-brand { display: flex; align-items: baseline; gap: 10px; }
-.d-logo { font-size: 22px; font-weight: 750; color: var(--accent); letter-spacing: -0.4px; }
-.d-title { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+.d-brand { display: flex; align-items: center; gap: 9px; }
+.d-logo-mark { width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0; display: block; }
+.d-logo { font-size: 22px; font-weight: 750; color: var(--accent); letter-spacing: -0.45px; line-height: 1; }
+.d-title { font-size: 14px; font-weight: 500; color: var(--text-muted); margin-top: 2px; }
 
 .d-nav { display: flex; gap: 4px; background: var(--muted); padding: 4px; border-radius: 9px; }
 .d-nav-btn {

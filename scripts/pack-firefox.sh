@@ -28,7 +28,7 @@ if "gecko_android" not in bss:
 version = manifest.get("version", "0.0.0")
 dist_dir = root / "dist"
 dist_dir.mkdir(exist_ok=True)
-out_path = dist_dir / f"ifll-firefox-v{version}.xpi"
+out_path = dist_dir / f"gloss-firefox-v{version}.xpi"
 
 # Build a Firefox-specific manifest copy inside the .xpi without background.service_worker
 # so AMO addons-linter produces 0 warnings while repo manifest.json remains Chrome+Firefox dual-ready.

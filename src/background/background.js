@@ -39,17 +39,17 @@ function setupContextMenus() {
     chrome.contextMenus.removeAll(() => {
       chrome.contextMenus.create({
         id: 'ifll-ctx-translate',
-        title: 'IFLL 翻译选中文本',
+        title: 'Gloss 翻译选中文本',
         contexts: ['selection']
       });
       chrome.contextMenus.create({
         id: 'ifll-ctx-card',
-        title: 'IFLL 打开词卡与 AI 解析',
+        title: 'Gloss 打开词卡与 AI 解析',
         contexts: ['selection']
       });
       chrome.contextMenus.create({
         id: 'ifll-ctx-review',
-        title: 'IFLL 加入 SM-2 复习队列',
+        title: 'Gloss 加入 SM-2 复习队列',
         contexts: ['selection']
       });
     });

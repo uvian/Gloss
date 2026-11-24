@@ -298,7 +298,7 @@
       const back = cleanField(item.zh + (item.def ? ` — ${item.def}` : ''));
       const ipa = cleanField(item.ipa || '');
       const ctx = cleanField(item.context || (Array.isArray(item.examples) ? item.examples[0] : '') || '');
-      const tags = cleanField(['IFLL', item.level || ''].filter(Boolean).join(' '));
+      const tags = cleanField(['Gloss', item.level || ''].filter(Boolean).join(' '));
       lines.push([front, back, ipa, ctx, tags].join('\t'));
     }
     return lines.join('\n');
