@@ -314,11 +314,11 @@
 
     /* ── Toast (supports optional action button) ── */
     .toast {
-      position: fixed; bottom: 66px; right: 20px; pointer-events: auto;
+      position: fixed; bottom: calc(66px + env(safe-area-inset-bottom, 0px)); right: calc(20px + env(safe-area-inset-right, 0px)); pointer-events: auto;
       display: flex; align-items: center; gap: 10px;
       padding: 9px 14px; border-radius: 8px; background: var(--bg);
       border: 1px solid var(--border); color: var(--text); font-size: 12.5px;
-      box-shadow: var(--shadow); max-width: 340px; animation: ttIn 0.16s ease-out;
+      box-shadow: var(--shadow); max-width: min(340px, calc(100vw - 24px)); animation: ttIn 0.16s ease-out;
     }
     .toast.warn { border-left: 3px solid var(--warn); }
     .toast.info { border-left: 3px solid var(--accent); }
@@ -326,11 +326,101 @@
       border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent);
       font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 4px; cursor: pointer;
     }
+
+    /* ── Mobile Bottom Sheet & Touch Ergonomics (desktop unchanged) ── */
+    .float-wrap { z-index: 10; }
+    .sel-wrap { z-index: 20; }
+    .tt-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      pointer-events: auto;
+      background: rgba(18, 20, 26, 0.34);
+      backdrop-filter: blur(1px);
+      -webkit-backdrop-filter: blur(1px);
+      animation: fadeIn 0.16s ease-out;
+    }
+    .tt-card { z-index: 40; }
+    .prompt-bar { z-index: 45; }
+    .toast { z-index: 50; }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes sheetUp {
+      from { opacity: 0.7; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .tt-card.mobile-sheet {
+      left: 0 !important;
+      right: 0;
+      top: auto !important;
+      bottom: 0;
+      width: 100% !important;
+      max-width: 100vw;
+      max-height: min(76dvh, 76vh);
+      border-radius: 16px 16px 0 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      animation: sheetUp 0.18s ease-out;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+    .tt-card.mobile-sheet .tt-handle {
+      height: 28px;
+      touch-action: none;
+      border-radius: 16px 16px 0 0;
+    }
+    .tt-card.mobile-sheet .tt-handle-bar { width: 42px; height: 4px; }
+    .tt-card.mobile-sheet .tt-close { width: 32px; height: 32px; right: 10px; top: 6px; }
+    .tt-card.mobile-sheet .tt-icon-btn { width: 32px; height: 32px; }
+    .tt-card.mobile-sheet .tt-btn { padding: 9px 10px; font-size: 13px; min-height: 36px; }
+    .tt-card.mobile-sheet .tt-en { font-size: 21px; }
+    .tt-card.mobile-sheet .tt-ex-item { padding-right: 68px; }
+    .tt-card.mobile-sheet .tt-ex-tools .tt-icon-btn { width: 30px; height: 30px; }
+
+    @media (pointer: coarse), (max-width: 640px) {
+      .float-wrap {
+        right: calc(14px + env(safe-area-inset-right, 0px));
+        bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+      }
+      .float-pill {
+        height: 38px;
+        padding: 0 13px;
+        border-radius: 19px;
+        font-size: 12.5px;
+        touch-action: none;
+      }
+      .float-menu { min-width: 160px; padding: 7px; }
+      .float-menu-item { padding: 9px 12px; font-size: 13px; }
+      .sel-bar { padding: 4px; gap: 3px; flex-wrap: wrap; justify-content: center; }
+      .sel-btn { padding: 7px 10px; font-size: 13px; }
+      .sel-foot-btn { padding: 5px 10px; font-size: 12px; }
+      .prompt-bar {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        width: calc(100vw - 20px);
+        padding: 10px 12px;
+      }
+      .prompt-btn { padding: 6px 12px; font-size: 12.5px; }
+      .toast {
+        left: 12px;
+        right: 12px;
+        max-width: none;
+        justify-content: space-between;
+        bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+      }
+    }
   `;
 
   let _host = null;
   let _shadow = null;
   let _rootEl = null;
+  let _ttBackdrop = null;
   let _ttEl = null;
   let _hoverPill = null;
   let _selWrap = null;
@@ -348,6 +438,7 @@
   let _activePort = null;
   let _dragState = null;
   let _lastDragEnd = 0;
+  let _floatJustDragged = false;
   let _globalListenersBound = false;
   let _selTimer = null;
   let _hoverTimer = null;
@@ -355,6 +446,28 @@
   let _capturedSelContext = '';
   let _lastSelRect = null;
   let _lastAnchorRect = null;
+
+  function isTouchDevice() {
+    return typeof window.matchMedia === 'function' &&
+      (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(hover: none)').matches);
+  }
+
+  function isMobileSheet() {
+    const vp = window.visualViewport;
+    const vw = vp ? vp.width : window.innerWidth;
+    if (vw <= 640) return true;
+    if (!isTouchDevice()) return false;
+    const sw = (window.screen && window.screen.width) ? Math.min(window.screen.width, vw) : vw;
+    return sw <= 820;
+  }
+
+  function getViewportBox() {
+    const vp = window.visualViewport;
+    if (vp) {
+      return { left: vp.offsetLeft, top: vp.offsetTop, width: vp.width, height: vp.height };
+    }
+    return { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+  }
 
   function ensureMounted() {
     if (_host && _host.isConnected) return;
@@ -375,7 +488,16 @@
     _hoverPill.className = 'hover-pill';
     _rootEl.appendChild(_hoverPill);
 
-    // 2. Tooltip Card
+    // 2. Mobile Backdrop + Tooltip Card
+    _ttBackdrop = document.createElement('div');
+    _ttBackdrop.className = 'tt-backdrop';
+    _ttBackdrop.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeTooltip();
+    });
+    _rootEl.appendChild(_ttBackdrop);
+
     _ttEl = document.createElement('div');
     _ttEl.className = 'tt-card';
     _rootEl.appendChild(_ttEl);
@@ -395,10 +517,12 @@
     `;
     _selResult = _selWrap.querySelector('.sel-result');
     _selCardBtn = _selWrap.querySelector('#selCardBtn');
-    _selWrap.querySelector('.sel-bar').addEventListener('click', onSelActionClick);
+    const selBar = _selWrap.querySelector('.sel-bar');
+    selBar.addEventListener('mousedown', (e) => e.preventDefault());
+    selBar.addEventListener('click', onSelActionClick);
     _rootEl.appendChild(_selWrap);
 
-    // 4. Floating Mode Capsule
+    // 4. Floating Mode Capsule (supports vertical thumb-drag on mobile)
     _floatWrap = document.createElement('div');
     _floatWrap.className = 'float-wrap';
     _floatWrap.innerHTML = `
@@ -418,8 +542,36 @@
     `;
     _floatMenu = _floatWrap.querySelector('.float-menu');
     _floatPill = _floatWrap.querySelector('.float-pill');
+
+    let pillTouch = null;
+    _floatPill.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      const rect = _floatWrap.getBoundingClientRect();
+      pillTouch = { startY: t.clientY, startBottom: Math.max(12, window.innerHeight - rect.bottom), moved: false };
+    }, { passive: true });
+    _floatPill.addEventListener('touchmove', (e) => {
+      if (!pillTouch || e.touches.length !== 1) return;
+      const dy = pillTouch.startY - e.touches[0].clientY;
+      if (Math.abs(dy) > 8) pillTouch.moved = true;
+      if (pillTouch.moved) {
+        e.preventDefault();
+        const maxBottom = Math.max(60, window.innerHeight - 90);
+        const nextBottom = Math.max(14, Math.min(maxBottom, pillTouch.startBottom + dy));
+        _floatWrap.style.bottom = Math.round(nextBottom) + 'px';
+      }
+    }, { passive: false });
+    _floatPill.addEventListener('touchend', () => {
+      if (pillTouch?.moved) {
+        _floatJustDragged = true;
+        setTimeout(() => { _floatJustDragged = false; }, 260);
+      }
+      pillTouch = null;
+    });
+
     _floatPill.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (_floatJustDragged) return;
       _floatMenu.classList.toggle('open');
     });
     _floatMenu.addEventListener('click', (e) => {
@@ -450,20 +602,22 @@
 
   function speakText(text, forceLang = null) {
     if (!text || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const lang = forceLang || (IFLL.utils.detectTextLanguage(text) === 'zh' ? 'zh-CN' : 'en-US');
-    u.lang = lang;
-    u.rate = Number(_settings?.voiceRate) || 0.9;
-    u.pitch = 1;
-    if (lang.startsWith('en') && _settings?.voiceName) {
-      const found = window.speechSynthesis.getVoices().find(v => v.name === _settings.voiceName);
-      if (found) u.voice = found;
-    }
-    window.speechSynthesis.speak(u);
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const lang = forceLang || (IFLL.utils.detectTextLanguage(text) === 'zh' ? 'zh-CN' : 'en-US');
+      u.lang = lang;
+      u.rate = Number(_settings?.voiceRate) || 0.9;
+      u.pitch = 1;
+      if (lang.startsWith('en') && _settings?.voiceName) {
+        const found = window.speechSynthesis.getVoices().find(v => v.name === _settings.voiceName);
+        if (found) u.voice = found;
+      }
+      window.speechSynthesis.speak(u);
+    } catch (_) {}
   }
 
-  /* ── Hover Mini-Preview ── */
+  /* ── Hover Mini-Preview (desktop fine pointer only) ── */
   function hideHoverPreview() {
     clearTimeout(_hoverTimer);
     _hoverTimer = null;
@@ -475,6 +629,7 @@
   }
 
   function showHoverPreview(data, rect) {
+    if (isTouchDevice()) return;
     if (_settings?.enableHoverPreview === false) return;
     if (isTooltipOpen()) return;
     ensureMounted();
@@ -505,22 +660,36 @@
 
   function positionTooltip(anchorRect) {
     if (!_ttEl || _ttEl.style.display === 'none') return;
+    if (anchorRect) _lastAnchorRect = anchorRect;
+
+    if (isMobileSheet()) {
+      _ttEl.classList.add('mobile-sheet');
+      _ttEl.style.left = '';
+      _ttEl.style.top = '';
+      _ttEl.style.transform = '';
+      if (_ttBackdrop) _ttBackdrop.style.display = 'block';
+      return;
+    }
+
+    _ttEl.classList.remove('mobile-sheet');
+    if (_ttBackdrop) _ttBackdrop.style.display = 'none';
+
     const rect = anchorRect || _lastAnchorRect;
     if (!rect) return;
-    _lastAnchorRect = rect;
+    const vp = getViewportBox();
     const margin = 8;
     const ttW = _ttEl.offsetWidth || 330;
     const ttH = _ttEl.offsetHeight || 200;
 
     let left = rect.left;
-    if (left + ttW > window.innerWidth - margin) left = window.innerWidth - ttW - margin;
-    if (left < margin) left = margin;
+    if (left + ttW > vp.left + vp.width - margin) left = vp.left + vp.width - ttW - margin;
+    if (left < vp.left + margin) left = vp.left + margin;
 
-    const spaceBelow = window.innerHeight - rect.bottom - margin;
-    const spaceAbove = rect.top - margin;
+    const spaceBelow = vp.top + vp.height - rect.bottom - margin;
+    const spaceAbove = rect.top - vp.top - margin;
     let top = (ttH <= spaceBelow || spaceBelow >= spaceAbove) ? rect.bottom + 6 : rect.top - ttH - 6;
-    if (top + ttH > window.innerHeight - margin) top = window.innerHeight - ttH - margin;
-    if (top < margin) top = margin;
+    if (top + ttH > vp.top + vp.height - margin) top = vp.top + vp.height - ttH - margin;
+    if (top < vp.top + margin) top = vp.top + margin;
 
     _ttEl.style.left = Math.round(left) + 'px';
     _ttEl.style.top = Math.round(top) + 'px';
@@ -528,7 +697,12 @@
 
   function closeTooltip() {
     cancelActiveStream();
-    if (_ttEl) _ttEl.style.display = 'none';
+    if (_ttEl) {
+      _ttEl.style.display = 'none';
+      _ttEl.style.transform = '';
+      _ttEl.classList.remove('mobile-sheet');
+    }
+    if (_ttBackdrop) _ttBackdrop.style.display = 'none';
     _activeWord = null;
   }
 
@@ -797,9 +971,37 @@
     const handle = _ttEl.querySelector('.tt-handle');
     if (handle) {
       handle.addEventListener('mousedown', (e) => {
-        if (e.target.closest('button')) return;
+        if (e.target.closest('button') || _ttEl.classList.contains('mobile-sheet')) return;
         _dragState = { offX: e.clientX - _ttEl.offsetLeft, offY: e.clientY - _ttEl.offsetTop };
         e.preventDefault();
+      });
+
+      let sheetStartY = null;
+      let sheetDy = 0;
+      handle.addEventListener('touchstart', (e) => {
+        if (e.target.closest('button') || !_ttEl.classList.contains('mobile-sheet') || e.touches.length !== 1) return;
+        sheetStartY = e.touches[0].clientY;
+        sheetDy = 0;
+        _ttEl.style.transition = 'none';
+      }, { passive: true });
+      handle.addEventListener('touchmove', (e) => {
+        if (sheetStartY === null || e.touches.length !== 1) return;
+        sheetDy = Math.max(0, e.touches[0].clientY - sheetStartY);
+        if (sheetDy > 0) {
+          e.preventDefault();
+          _ttEl.style.transform = `translateY(${Math.round(sheetDy)}px)`;
+        }
+      }, { passive: false });
+      handle.addEventListener('touchend', () => {
+        if (sheetStartY === null) return;
+        sheetStartY = null;
+        _ttEl.style.transition = '';
+        if (sheetDy > 64) {
+          closeTooltip();
+        } else {
+          _ttEl.style.transform = '';
+        }
+        sheetDy = 0;
       });
     }
 
@@ -992,17 +1194,27 @@
   }
 
   function positionSelToolbar(rect) {
-    if (!_selWrap || _selWrap.style.display === 'none') return;
+    if (!_selWrap || _selWrap.style.display === 'none' || !rect) return;
+    const vp = getViewportBox();
     const margin = 8;
     const w = _selWrap.offsetWidth || 240;
-    const h = _selWrap.offsetHeight || 36;
+    const h = _selWrap.offsetHeight || 40;
     let left = rect.left + (rect.width / 2) - (w / 2);
-    if (left + w > window.innerWidth - margin) left = window.innerWidth - w - margin;
-    if (left < margin) left = margin;
+    if (left + w > vp.left + vp.width - margin) left = vp.left + vp.width - w - margin;
+    if (left < vp.left + margin) left = vp.left + margin;
 
-    let top = rect.top - h - 8;
-    if (top < margin) top = rect.bottom + 8;
-    if (top + h > window.innerHeight - margin) top = window.innerHeight - h - margin;
+    let top;
+    if (isTouchDevice()) {
+      // Android/iOS native Copy/Share bar opens ABOVE the selection -> place ours BELOW to avoid overlap
+      top = rect.bottom + 14;
+      if (top + h > vp.top + vp.height - margin) {
+        top = Math.max(vp.top + margin, vp.top + vp.height - h - margin);
+      }
+    } else {
+      top = rect.top - h - 8;
+      if (top < vp.top + margin) top = rect.bottom + 8;
+      if (top + h > vp.top + vp.height - margin) top = vp.top + vp.height - h - margin;
+    }
 
     _selWrap.style.left = Math.round(left) + 'px';
     _selWrap.style.top = Math.round(top) + 'px';
@@ -1226,7 +1438,7 @@
     if (_globalListenersBound) return;
     _globalListenersBound = true;
 
-    // Drag move/up + Hover Mini-Preview
+    // Drag move/up + Hover Mini-Preview (desktop fine pointer only)
     let lastHoverTarget = null;
     document.addEventListener('mousemove', (e) => {
       if (_dragState && _ttEl) {
@@ -1237,6 +1449,7 @@
         return;
       }
 
+      if (isTouchDevice()) return;
       if (_settings?.enableHoverPreview === false) return;
       if (isTooltipOpen()) { hideHoverPreview(); return; }
       if (isInsideShadowHost(e)) return;
@@ -1286,6 +1499,13 @@
       }
     }, true);
 
+    document.addEventListener('touchstart', (e) => {
+      hideHoverPreview();
+      if (isInsideShadowHost(e)) return;
+      if (_floatMenu?.classList.contains('open')) _floatMenu.classList.remove('open');
+      if (_selWrap?.style.display === 'flex') hideSelToolbar();
+    }, { capture: true, passive: true });
+
     document.addEventListener('click', (e) => {
       if (isInsideShadowHost(e)) return;
       if (Date.now() - _lastDragEnd < 250) return;
@@ -1315,11 +1535,10 @@
       }
     });
 
-    document.addEventListener('mouseup', (e) => {
-      if (isInsideShadowHost(e)) return;
+    function scheduleSelectionCheck(delayMs) {
       if (!_settings?.enabled || _settings?.enableSelToolbar === false) return;
       if (IFLL.utils.isExcludedHost(window.location.hostname, _settings.excludedSites)) return;
-      if (e.target?.closest?.('input, textarea, [contenteditable="true"], [contenteditable=""]')) return;
+      if (isTooltipOpen()) return;
 
       clearTimeout(_selTimer);
       _selTimer = setTimeout(() => {
@@ -1330,6 +1549,10 @@
           return;
         }
         const range = sel.getRangeAt(0);
+        const anchorEl = range.startContainer?.nodeType === 1 ? range.startContainer : range.startContainer?.parentElement;
+        if (anchorEl?.closest?.('#ifll-shadow-host, input, textarea, [contenteditable="true"], [contenteditable=""]')) {
+          return;
+        }
         const rect = range.getBoundingClientRect();
         if (!rect || (rect.width === 0 && rect.height === 0)) return;
         _capturedSelText = text;
@@ -1343,8 +1566,46 @@
         _selResult.innerHTML = '';
         _selWrap.style.display = 'flex';
         positionSelToolbar(rect);
-      }, 240);
+      }, delayMs);
+    }
+
+    document.addEventListener('mouseup', (e) => {
+      if (isInsideShadowHost(e)) return;
+      if (e.target?.closest?.('input, textarea, [contenteditable="true"], [contenteditable=""]')) return;
+      scheduleSelectionCheck(240);
     });
+
+    // Mobile long-press / drag-handle text selection support (Firefox Android / touchscreens)
+    document.addEventListener('selectionchange', () => {
+      if (!isTouchDevice()) return;
+      const sel = window.getSelection();
+      const text = sel ? sel.toString().trim() : '';
+      if (!text) {
+        clearTimeout(_selTimer);
+        if (_selWrap?.style.display === 'flex' && _selResult?.style.display !== 'block') {
+          hideSelToolbar();
+        }
+        return;
+      }
+      scheduleSelectionCheck(380);
+    });
+
+    document.addEventListener('touchend', (e) => {
+      if (!isTouchDevice()) return;
+      if (isInsideShadowHost(e)) return;
+      if (e.target?.closest?.('input, textarea, [contenteditable="true"], [contenteditable=""]')) return;
+      const sel = window.getSelection();
+      if (sel && sel.toString().trim().length >= 2) {
+        scheduleSelectionCheck(260);
+      }
+    }, { passive: true });
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        if (isTooltipOpen()) positionTooltip();
+        if (_selWrap?.style.display === 'flex' && _lastSelRect) positionSelToolbar(_lastSelRect);
+      });
+    }
   }
 
   function configure(settings, onSwitchMode) {

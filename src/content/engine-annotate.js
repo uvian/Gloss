@@ -48,22 +48,37 @@
     } catch (_) {}
   }
 
+  function isCoarsePointer() {
+    return typeof window !== 'undefined' && typeof window.matchMedia === 'function' &&
+      (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(hover: none)').matches);
+  }
+
   function findHitAtPoint(x, y) {
     if (!_hits.length) return null;
+    const pad = isCoarsePointer() ? 8 : 1;
+    let bestHit = null;
+    let bestDist = Infinity;
     for (const hit of _hits) {
       if (_knownSet.has(hit.data.zh)) continue;
       if (!hit.range.startContainer?.isConnected) continue;
       const rects = hit.range.getClientRects();
       for (const r of rects) {
-        if (x >= r.left - 1 && x <= r.right + 1 && y >= r.top - 1 && y <= r.bottom + 1) {
-          return hit;
+        if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad) {
+          if (pad <= 1) return hit;
+          const cx = (r.left + r.right) / 2;
+          const cy = (r.top + r.bottom) / 2;
+          const dist = Math.hypot(x - cx, y - cy);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestHit = hit;
+          }
         }
       }
     }
-    return null;
+    return bestHit;
   }
 
-  /* Lightweight throttled cursor feedback for Highlight API words */
+  /* Lightweight throttled cursor feedback for Highlight API words (desktop fine pointer only) */
   let _lastHoverCheck = 0;
   function onHoverMove(e) {
     if (!_running || !_hits.length) return;
@@ -204,7 +219,7 @@
     _hits = [];
     _processedBlocks = new WeakSet();
 
-    if (supportsHighlightApi() && !_hoverBound) {
+    if (supportsHighlightApi() && !isCoarsePointer() && !_hoverBound) {
       document.addEventListener('mousemove', onHoverMove, { passive: true });
       _hoverBound = true;
     }

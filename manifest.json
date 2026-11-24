@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "IFLL — Immersive English Learning & Translator",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Immersive English learning & bilingual web translation — smart inline swap, lemmatized annotation, micro-batch bilingual translation, input translation, and SM-2 active recall.",
   "permissions": [
     "storage",
@@ -52,7 +52,16 @@
     }
   ],
   "background": {
-    "service_worker": "src/background/background.js"
+    "service_worker": "src/background/background.js",
+    "scripts": [
+      "src/shared/constants.js",
+      "src/shared/utils.js",
+      "src/shared/storage.js",
+      "src/background/cache-db.js",
+      "src/background/ai-client.js",
+      "src/background/batch-runner.js",
+      "src/background/background.js"
+    ]
   },
   "commands": {
     "toggle-translate": {
@@ -83,7 +92,13 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "ifll@wto.li",
-      "strict_min_version": "125.0"
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["websiteContent"]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   }
 }

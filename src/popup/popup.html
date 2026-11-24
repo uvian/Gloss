@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>IFLL</title>
   <link rel="stylesheet" href="popup.css">
 </head>
@@ -22,6 +22,12 @@
       <button id="openDashboardBtn" class="p-btn p-btn-sm" title="打开学习中心">学习中心</button>
     </div>
   </header>
+
+  <!-- Optional Host Permission Notice (shown only when browser revokes/withholds host_permissions) -->
+  <div id="permBanner" class="p-perm-banner" style="display:none">
+    <span>需要授予网页访问权限才能在页面上翻译与学习</span>
+    <button id="grantPermBtn" type="button" class="p-btn p-btn-sm p-btn-primary">立即授权</button>
+  </div>
 
   <!-- Master Toggle + Current Host -->
   <div class="p-toggle-bar">

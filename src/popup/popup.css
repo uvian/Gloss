@@ -26,13 +26,29 @@
 
 body {
   width: 380px;
+  max-width: 100vw;
   font-family: -apple-system, 'Helvetica Neue', BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   font-size: 13px;
   color: var(--c-text);
   background: var(--c-bg);
 }
 
-.p-container { padding: 14px 16px 12px; }
+.p-container { padding: 14px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
+
+.p-perm-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  background: var(--c-warn-soft);
+  border: 1px solid #EFE0B9;
+  border-radius: var(--radius);
+  color: var(--c-warn);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
 
 /* Header */
 .p-header {
@@ -492,3 +508,39 @@ body {
 }
 .p-btn-link:hover { text-decoration: underline; }
 .p-privacy { font-size: 10.5px; color: var(--c-text-dim); }
+
+/* Mobile / Firefox for Android Touch Popup (desktop pointer: fine stays exact 380px) */
+@media (pointer: coarse) {
+  body {
+    width: 100%;
+    max-width: 100vw;
+    min-height: 100dvh;
+    font-size: 14px;
+  }
+  .p-container {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 14px 14px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  .p-mode-btn {
+    padding: 9px 4px;
+    font-size: 12.5px;
+    min-height: 36px;
+  }
+  .p-select, .p-input {
+    min-height: 36px;
+    font-size: 13px;
+    padding: 7px 10px;
+  }
+  .p-select { padding-right: 28px; }
+  .p-combo-field { min-height: 36px; }
+  .p-combo-input { font-size: 13px; padding: 7px 4px 7px 10px; }
+  .p-combo-toggle { width: 34px; height: 34px; }
+  .p-combo-opt { padding: 9px 10px; font-size: 13px; line-height: 18px; }
+  .p-btn { min-height: 36px; padding: 7px 13px; font-size: 13px; }
+  .p-btn-sm { min-height: 34px; padding: 6px 11px; font-size: 12.5px; }
+  .p-details summary { padding: 4px 0; font-size: 13px; }
+  .p-check { font-size: 12.5px; min-height: 28px; }
+  .p-check-row { flex-wrap: wrap; gap: 6px 12px; }
+  .p-host-chip { max-width: 52vw; }
+}

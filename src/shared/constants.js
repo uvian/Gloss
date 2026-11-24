@@ -6,7 +6,7 @@
 
   const IFLL = (root.IFLL = root.IFLL || {});
 
-  const VERSION = '0.4.1';
+  const VERSION = '0.5.0';
 
   /* Unbounded user-generated collections stored in chrome.storage.local (10MB quota) */
   const LOCAL_KEYS = ['knownWords', 'reviewQueue', 'userWords', 'phraseMap', 'learningHistory'];

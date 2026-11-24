@@ -1,5 +1,18 @@
 # IFLL — 更新日志
 
+## v0.5.0 — 2026-11-23
+
+### Firefox 桌面 / 安卓端全面兼容与移动端深度交互适配
+- **单份 Manifest 跨端兼容 Chrome + Firefox（含安卓）**：在 `manifest.json` 同时声明 `background.service_worker` 与 `background.scripts`，补齐 `browser_specific_settings.gecko_android` 与 AMO 要求的 `data_collection_permissions`；`background.js` 自动兼容 `importScripts` 与缺失 `chrome.windows` 的安卓环境；Popup 增加静默网页权限检测引导与 `speechSynthesis` 容错、延迟释放导出 Blob URL。
+- **移动端原生级 Shadow DOM 体验（桌面端零回归）**：
+  - 触屏/窄屏下词卡自动切换为**底部抽屉（Bottom Sheet）**，附带半透明防误触遮罩、顶部把手**下滑关闭手势**、安全区适配与放大触控热区；桌面端仍保持原位锚定与拖拽。
+  - 划词工具栏新增 `selectionchange` / `touchend` 支持，并在触屏端自动定位至选区**下方**以避开安卓系统原生「复制/分享」浮条，同时接入 `visualViewport` 适配缩放与软键盘。
+  - 触屏端自动关闭悬停速览气泡避免点击闪烁；右下角悬浮胶囊支持**单指上下拖动**避让网页原生按钮；英文标注 Highlight API 点击判定在触屏端自动扩大 8px 容差并就近命中。
+- **Popup & 学习中心全响应式布局**：Popup 在桌面端严格维持 380px 宽度，在触屏设备自动铺满全宽并增大触控控件高度；学习中心小屏下 30 天热力图自动转为 15×2 网格、SM-2 评分转为 2×2 大按钮，全面消除窄屏横向溢出。
+- **新增 Firefox 打包与移动 E2E 验收**：新增 `scripts/pack-firefox.sh` 一键生成 `.xpi`，并在 `tests/e2e.py` 增加 375×812 触屏移动端的完整端到端验收。
+
+---
+
 ## v0.4.1 — 2026-11-23
 
 ### OpenCode Go 兼容修复与弹窗表单交互优化

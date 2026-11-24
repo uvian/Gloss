@@ -59,8 +59,8 @@ def start_mock_server():
 
         def do_GET(self):
             if self.path == "/zh":
-                html = """<!doctype html><html><head><meta charset="utf-8"><title>中文测试页</title></head>
-                <body style="padding:40px;font-size:16px;line-height:1.8;">
+                html = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>中文测试页</title></head>
+                <body style="padding:20px;font-size:16px;line-height:1.8;">
                   <nav><a href="#home">首页</a><button>登录</button></nav>
                   <main>
                     <h1>人工智能与现代软件工程</h1>
@@ -186,13 +186,16 @@ def main():
             tt = zh.evaluate("""() => {
                 const sr = document.getElementById('ifll-shadow-host').shadowRoot;
                 const card = sr.querySelector('.tt-card');
+                const bd = sr.querySelector('.tt-backdrop');
                 return {
                     visible: getComputedStyle(card).display !== 'none',
+                    isSheet: card.classList.contains('mobile-sheet'),
+                    bdHidden: getComputedStyle(bd).display === 'none',
                     hasContext: !!card.querySelector('.tt-context'),
                     hasSpeakSvg: !!card.querySelector('[data-action="speak"] svg')
                 };
             }""")
-            assert tt["visible"] and tt["hasContext"] and tt["hasSpeakSvg"], f"Tooltip check failed: {tt}"
+            assert tt["visible"] and not tt["isSheet"] and tt["bdHidden"] and tt["hasContext"] and tt["hasSpeakSvg"], f"Desktop Tooltip check failed: {tt}"
             zh.keyboard.press("Escape")
             zh.wait_for_timeout(150)
 
@@ -308,9 +311,108 @@ def main():
             assert "新增 2 条" in bulk_res, f"Bulk import failed: {bulk_res}"
             print("[6/7] Dashboard Heatmap + Context Flashcard + Cloze + Spelling + Dark Mode + Bulk Import passed")
 
-            assert not errors, f"Runtime page errors: {errors}"
-            print("[7/7] ALL REAL CHROMIUM MV3 E2E TESTS PASSED WITH 0 ERRORS!")
+            assert not errors, f"Desktop runtime page errors: {errors}"
+            print("[7/8] Desktop MV3 E2E passed with 0 errors!")
             ctx.close()
+
+            # Mobile Touch Emulation (375x812, pointer: coarse, hover: none — simulates Firefox for Android UX)
+            mobile_ud = tempfile.mkdtemp(prefix="ifll_e2e_mobile_")
+            try:
+                mctx = p.chromium.launch_persistent_context(
+                    mobile_ud,
+                    channel="chromium",
+                    headless=True,
+                    viewport={"width": 375, "height": 812},
+                    has_touch=True,
+                    is_mobile=True,
+                    args=[
+                        f"--disable-extensions-except={ROOT}",
+                        f"--load-extension={ROOT}",
+                    ],
+                )
+                msw = mctx.service_workers[0] if mctx.service_workers else mctx.wait_for_event("serviceworker", timeout=10000)
+                mext_id = msw.url.split("/")[2]
+
+                # 1. Mobile Popup: full-width responsive, 0 horizontal overflow, combobox fits inside 375px
+                mpop = mctx.new_page()
+                mpop.on("pageerror", lambda e: errors.append(f"M_POPUP: {e}"))
+                mpop.goto(f"chrome-extension://{mext_id}/src/popup/popup.html", wait_until="networkidle")
+                mpop.wait_for_timeout(450)
+                mpop_overflow = mpop.evaluate("() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth, hint: document.getElementById('modeStatusHint').textContent })")
+                assert mpop_overflow["sw"] <= mpop_overflow["iw"] + 1, f"Mobile popup horizontal overflow: {mpop_overflow}"
+                assert "悬浮胶囊" in mpop_overflow["hint"], f"Expected mobile hint in popup: {mpop_overflow}"
+
+                # 2. Mobile Chinese Webpage: Bottom Sheet Word Card + Backdrop + Below-Selection Toolbar
+                mzh = mctx.new_page()
+                mzh.on("pageerror", lambda e: errors.append(f"M_ZH: {e}"))
+                mzh.goto(f"http://127.0.0.1:{port}/zh", wait_until="networkidle")
+                mzh.wait_for_timeout(1100)
+                assert mzh.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"), "Mobile ZH horizontal overflow"
+
+                mzh.locator("#p1 .ifll-word").first.tap()
+                mzh.wait_for_timeout(350)
+                sheet = mzh.evaluate("""() => {
+                    const sr = document.getElementById('ifll-shadow-host').shadowRoot;
+                    const card = sr.querySelector('.tt-card');
+                    const bd = sr.querySelector('.tt-backdrop');
+                    const cr = card.getBoundingClientRect();
+                    return {
+                        isSheet: card.classList.contains('mobile-sheet'),
+                        bdVisible: getComputedStyle(bd).display === 'block',
+                        width: Math.round(cr.width),
+                        bottomGap: Math.round(window.innerHeight - cr.bottom),
+                        hoverHidden: getComputedStyle(sr.querySelector('.hover-pill')).display === 'none'
+                    };
+                }""")
+                assert sheet["isSheet"] and sheet["bdVisible"] and sheet["hoverHidden"], f"Mobile Bottom Sheet check failed: {sheet}"
+                assert sheet["width"] >= 370 and sheet["bottomGap"] <= 2, f"Bottom sheet geometry wrong: {sheet}"
+
+                # Tap backdrop to dismiss cleanly
+                mzh.evaluate("() => document.getElementById('ifll-shadow-host').shadowRoot.querySelector('.tt-backdrop').click()")
+                mzh.wait_for_timeout(150)
+                assert mzh.evaluate("() => getComputedStyle(document.getElementById('ifll-shadow-host').shadowRoot.querySelector('.tt-card')).display === 'none'")
+
+                # Verify Mobile Selection Toolbar appears BELOW selection (to avoid Android native top menu)
+                sel_pos = mzh.evaluate("""() => {
+                    const p = document.getElementById('p2');
+                    const r = document.createRange();
+                    r.selectNodeContents(p);
+                    const s = window.getSelection();
+                    s.removeAllRanges();
+                    s.addRange(r);
+                    document.dispatchEvent(new Event('selectionchange'));
+                    return p.getBoundingClientRect().bottom;
+                }""")
+                mzh.wait_for_timeout(520)
+                sel_box = mzh.evaluate("""() => {
+                    const sr = document.getElementById('ifll-shadow-host').shadowRoot;
+                    const wrap = sr.querySelector('.sel-wrap');
+                    const r = wrap.getBoundingClientRect();
+                    return { vis: getComputedStyle(wrap).display === 'flex', top: r.top, left: r.left, right: r.right };
+                }""")
+                assert sel_box["vis"], f"Mobile selection toolbar did not appear: {sel_box}"
+                assert sel_box["top"] >= sel_pos, f"Mobile selection toolbar should be below selection ({sel_pos}): {sel_box}"
+                assert sel_box["left"] >= 0 and sel_box["right"] <= 376, f"Mobile selection toolbar clipped: {sel_box}"
+
+                # 3. Mobile Dashboard: 15x2 heatmap, 0 horizontal overflow on 375px
+                mdash = mctx.new_page()
+                mdash.on("pageerror", lambda e: errors.append(f"M_DASH: {e}"))
+                mdash.goto(f"chrome-extension://{mext_id}/src/dashboard/dashboard.html#review", wait_until="networkidle")
+                mdash.wait_for_timeout(500)
+                md_layout = mdash.evaluate("""() => ({
+                    sw: document.documentElement.scrollWidth,
+                    iw: window.innerWidth,
+                    hmCells: document.querySelectorAll('#heatmapGrid .hm-cell').length,
+                    sub: document.getElementById('reviewSub').textContent
+                })""")
+                assert md_layout["sw"] <= md_layout["iw"] + 1, f"Mobile dashboard horizontal overflow: {md_layout}"
+                assert md_layout["hmCells"] == 30 and "快捷键" not in md_layout["sub"], f"Mobile dashboard check failed: {md_layout}"
+
+                assert not errors, f"Mobile runtime page errors: {errors}"
+                print("[8/8] Mobile Touch (375x812) Popup + Bottom Sheet + Below-Sel Toolbar + Dashboard passed with 0 errors!")
+                mctx.close()
+            finally:
+                shutil.rmtree(mobile_ud, ignore_errors=True)
     finally:
         server.shutdown()
         shutil.rmtree(user_data, ignore_errors=True)

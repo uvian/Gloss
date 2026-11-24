@@ -37,17 +37,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyDashboardTheme(next);
   });
 
+  const isTouchDevice = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+  const reviewSubEl = document.getElementById('reviewSub');
+  if (isTouchDevice && reviewSubEl) {
+    reviewSubEl.textContent = '按遗忘曲线安排复习 · 点击卡片翻面与朗读';
+  }
+
   function speak(text) {
     if (!text || !('speechSynthesis' in window)) return;
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    u.rate = Number(settings.voiceRate) || 0.9;
-    if (settings.voiceName) {
-      const found = speechSynthesis.getVoices().find(v => v.name === settings.voiceName);
-      if (found) u.voice = found;
-    }
-    speechSynthesis.speak(u);
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = Number(settings.voiceRate) || 0.9;
+      if (settings.voiceName) {
+        const found = speechSynthesis.getVoices().find(v => v.name === settings.voiceName);
+        if (found) u.voice = found;
+      }
+      speechSynthesis.speak(u);
+    } catch (_) {}
   }
 
   function formatRelativeTime(ts) {
@@ -199,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="fc-zh">${esc(card.zh)}<span class="fc-pos">${esc(utils.posLabel(card.pos))} ${esc(card.pos_cn || '')}</span></div>
           <div class="fc-ipa-row">
             ${card.ipa ? `<span>${esc(card.ipa)}</span>` : ''}
-            <button id="fcSpeak" class="d-btn d-btn-sm" type="button">再听一遍 (S)</button>
+            <button id="fcSpeak" class="d-btn d-btn-sm" type="button">${isTouchDevice ? '再听一遍' : '再听一遍 (S)'}</button>
           </div>
           <form class="fc-drill-form" id="fcDrillForm">
             <input type="text" class="fc-drill-input" id="fcDrillInput" placeholder="输入听到的英文拼写…" autocomplete="off" spellcheck="false">
@@ -231,9 +239,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="fc-word">${esc(card.en)}</div>
           <div class="fc-ipa-row">
             ${card.ipa ? `<span>${esc(card.ipa)}</span>` : ''}
-            <button id="fcSpeak" class="d-btn d-btn-sm" type="button">朗读 (S)</button>
+            <button id="fcSpeak" class="d-btn d-btn-sm" type="button">${isTouchDevice ? '朗读' : '朗读 (S)'}</button>
           </div>
-          <div class="fc-flip-hint" id="fcHint" style="${cardFlipped ? 'display:none' : ''}">点击卡片或按 Space 显示释义</div>
+          <div class="fc-flip-hint" id="fcHint" style="${cardFlipped ? 'display:none' : ''}">${isTouchDevice ? '轻触卡片显示释义' : '点击卡片或按 Space 显示释义'}</div>
         </div>
       `;
     }
@@ -398,7 +406,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     a.href = url;
     a.download = `ifll-anki-${activeVocabSub}-${utils.getLocalDateStr()}.tsv`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
   });
 
   async function renderVocabList() {

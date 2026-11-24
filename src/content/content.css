@@ -17,6 +17,7 @@
   font-size: inherit;
   line-height: inherit;
   border-radius: 2px;
+  -webkit-tap-highlight-color: rgba(46, 80, 144, 0.14);
 }
 .ifll-word:hover {
   border-bottom-color: rgba(46, 80, 144, 0.95);
@@ -56,6 +57,7 @@
   color: inherit;
   background: transparent;
   border-radius: 2px;
+  -webkit-tap-highlight-color: rgba(46, 80, 144, 0.14);
 }
 .ifll-annotated:hover {
   background: rgba(46, 80, 144, 0.07);
@@ -89,6 +91,8 @@ body.ifll-hl-pointer {
   color: inherit;
   opacity: 0.92;
   letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .ifll-trans-panel.ifll-trans-loading {
   opacity: 0.58;
@@ -120,6 +124,16 @@ body.ifll-hl-pointer {
 }
 .ifll-trans-panel.ifll-trans-hidden {
   display: none !important;
+}
+
+@media (pointer: coarse) {
+  .ifll-trans-panel {
+    padding: 7px 10px;
+  }
+  .ifll-trans-retry {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
 }
 
 @media (prefers-color-scheme: dark) {

@@ -1,16 +1,18 @@
 /*
- * IFLL — Background Service Worker Entry Point (v0.4)
+ * IFLL — Background Entry Point (Chrome MV3 Service Worker + Firefox Desktop/Android Event Page, v0.5)
  */
-importScripts(
-  '/src/shared/constants.js',
-  '/src/shared/utils.js',
-  '/src/shared/storage.js',
-  '/src/background/cache-db.js',
-  '/src/background/ai-client.js',
-  '/src/background/batch-runner.js'
-);
+if (typeof importScripts === 'function') {
+  importScripts(
+    '/src/shared/constants.js',
+    '/src/shared/utils.js',
+    '/src/shared/storage.js',
+    '/src/background/cache-db.js',
+    '/src/background/ai-client.js',
+    '/src/background/batch-runner.js'
+  );
+}
 
-const { constants, utils, storage, cacheDb, aiClient, batchRunner } = self.IFLL;
+const { constants, utils, storage, cacheDb, aiClient, batchRunner } = globalThis.IFLL;
 
 const BADGE_ALARM = 'ifll-badge-refresh';
 
@@ -207,15 +209,17 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     IFLL_OPEN_DASHBOARD: async () => {
       const hash = message.tab ? '#' + message.tab : '';
       const url = chrome.runtime.getURL('src/dashboard/dashboard.html') + hash;
-      const existing = await chrome.tabs.query({ url: chrome.runtime.getURL('src/dashboard/dashboard.html') + '*' });
-      if (existing.length) {
-        await chrome.tabs.update(existing[0].id, { active: true, url });
-        if (existing[0].windowId != null) {
-          await chrome.windows.update(existing[0].windowId, { focused: true }).catch(() => {});
+      try {
+        const existing = await chrome.tabs.query({ url: chrome.runtime.getURL('src/dashboard/dashboard.html') + '*' });
+        if (existing.length && existing[0].id != null) {
+          await chrome.tabs.update(existing[0].id, { active: true, url });
+          if (existing[0].windowId != null && chrome.windows?.update) {
+            await chrome.windows.update(existing[0].windowId, { focused: true }).catch(() => {});
+          }
+          return { ok: true };
         }
-      } else {
-        await chrome.tabs.create({ url });
-      }
+      } catch (_) {}
+      await chrome.tabs.create({ url });
       return { ok: true };
     }
   };

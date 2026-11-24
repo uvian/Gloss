@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     openReviewBtn: document.getElementById('openReviewBtn'),
     reviewBadge: document.getElementById('reviewBadge'),
     openDashboardBtn: document.getElementById('openDashboardBtn'),
+    permBanner: document.getElementById('permBanner'),
+    grantPermBtn: document.getElementById('grantPermBtn'),
     modeSelector: document.getElementById('modeSelector'),
     modeStatusHint: document.getElementById('modeStatusHint'),
     level: document.getElementById('level'),
@@ -387,14 +389,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  /* Populate Voices safely without innerHTML XSS */
+  /* Populate Voices safely without innerHTML XSS (guarded for Android WebView/Firefox) */
   function populateVoices(savedVoice) {
-    const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
     els.voiceSelect.innerHTML = '';
     const defOpt = document.createElement('option');
     defOpt.value = '';
     defOpt.textContent = '系统默认';
     els.voiceSelect.appendChild(defOpt);
+    if (typeof speechSynthesis === 'undefined' || typeof speechSynthesis.getVoices !== 'function') return;
+    const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
     for (const v of voices) {
       const opt = document.createElement('option');
       opt.value = v.name;
@@ -402,6 +405,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       els.voiceSelect.appendChild(opt);
     }
     if (savedVoice) els.voiceSelect.value = savedVoice;
+  }
+
+  /* Optional Firefox MV3 host-permission check (hidden whenever already granted) */
+  async function checkHostPermissions() {
+    if (!els.permBanner || !chrome.permissions?.contains) return;
+    try {
+      const granted = await chrome.permissions.contains({ origins: ['http://*/*', 'https://*/*'] });
+      els.permBanner.style.display = granted ? 'none' : 'flex';
+    } catch (_) {}
+  }
+
+  const isTouchUi = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+  if (isTouchUi && els.modeStatusHint) {
+    els.modeStatusHint.textContent = '点页面右下角悬浮胶囊切模式 · 长按网页划词翻译/查卡';
   }
 
   /* Batch status renderer (connected to SW batchRunner!) */
@@ -423,15 +440,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* ── Initialize ── */
   await getActiveTab();
-  await renderAll();
+  await Promise.all([renderAll(), checkHostPermissions()]);
   loadMeta();
 
   const initialSettings = await storage.get();
   populateVoices(initialSettings.voiceName);
-  speechSynthesis.onvoiceschanged = async () => {
-    const s = await storage.get();
-    populateVoices(s.voiceName);
-  };
+  if (typeof speechSynthesis !== 'undefined') {
+    speechSynthesis.onvoiceschanged = async () => {
+      const s = await storage.get();
+      populateVoices(s.voiceName);
+    };
+  }
 
   chrome.runtime.sendMessage({ type: 'IFLL_BATCH_STATUS' })
     .then(renderBatchState)
@@ -444,11 +463,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   /* ── Event Bindings ── */
-  els.openReviewBtn.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'IFLL_OPEN_DASHBOARD', tab: 'review' }).catch(() => {});
+  if (els.grantPermBtn) {
+    els.grantPermBtn.addEventListener('click', async () => {
+      try {
+        const ok = await chrome.permissions.request({ origins: ['http://*/*', 'https://*/*'] });
+        if (ok) {
+          els.permBanner.style.display = 'none';
+          if (activeTab?.id != null) chrome.tabs.reload(activeTab.id);
+        }
+      } catch (_) {}
+    });
+  }
+
+  els.openReviewBtn.addEventListener('click', async () => {
+    await chrome.runtime.sendMessage({ type: 'IFLL_OPEN_DASHBOARD', tab: 'review' }).catch(() => {});
+    if (isTouchUi) window.close();
   });
-  els.openDashboardBtn.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'IFLL_OPEN_DASHBOARD', tab: 'vocab' }).catch(() => {});
+  els.openDashboardBtn.addEventListener('click', async () => {
+    await chrome.runtime.sendMessage({ type: 'IFLL_OPEN_DASHBOARD', tab: 'vocab' }).catch(() => {});
+    if (isTouchUi) window.close();
   });
 
   els.enabled.addEventListener('change', async () => {
@@ -583,13 +616,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     await storage.set({ voiceRate: Number(els.voiceRate.value) || 0.9 });
   });
   els.testVoice.addEventListener('click', () => {
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance('Immersive learning builds lasting vocabulary.');
-    u.lang = 'en-US';
-    u.rate = Number(els.voiceRate.value) || 0.9;
-    const found = speechSynthesis.getVoices().find(v => v.name === els.voiceSelect.value);
-    if (found) u.voice = found;
-    speechSynthesis.speak(u);
+    if (typeof speechSynthesis === 'undefined') return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance('Immersive learning builds lasting vocabulary.');
+      u.lang = 'en-US';
+      u.rate = Number(els.voiceRate.value) || 0.9;
+      const found = speechSynthesis.getVoices().find(v => v.name === els.voiceSelect.value);
+      if (found) u.voice = found;
+      speechSynthesis.speak(u);
+    } catch (_) {}
   });
 
   /* Export / Import */
@@ -601,7 +637,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     a.href = url;
     a.download = `ifll-backup-${utils.getLocalDateStr()}.json`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
     setMsg(els.ioMsg, '配置已导出', 'ok');
   });
 

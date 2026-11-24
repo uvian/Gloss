@@ -14,7 +14,7 @@ check() {
   fi
 }
 
-echo "=== IFLL v0.4 pre-push check ==="
+echo "=== IFLL v0.5 pre-push check ==="
 
 # 1. JS syntax validation across all modules
 for f in src/shared/*.js src/background/*.js src/content/*.js src/popup/*.js src/dashboard/*.js; do
@@ -25,6 +25,7 @@ for f in src/shared/*.js src/background/*.js src/content/*.js src/popup/*.js src
     fail=1
   fi
 done
+check "bash -n scripts/pack-firefox.sh" "pack-firefox.sh bash syntax"
 check "python3 -m py_compile scripts/clean_wordbank.py tests/e2e.py" "python scripts syntax"
 
 # 2. JSON validity
@@ -32,20 +33,25 @@ check "node -e 'JSON.parse(require(\"fs\").readFileSync(\"manifest.json\",\"utf8
 check "node -e 'JSON.parse(require(\"fs\").readFileSync(\"src/data/wordbank.json\",\"utf8\"))'" "wordbank.json valid JSON"
 check "node -e 'JSON.parse(require(\"fs\").readFileSync(\"src/data/wordbank-meta.json\",\"utf8\"))'" "wordbank-meta.json valid JSON"
 
-# 3. Manifest references exist
+# 3. Manifest references & cross-browser (Chrome + Firefox Desktop/Android) keys exist
 check "node -e '
 const fs = require(\"fs\");
 const m = JSON.parse(fs.readFileSync(\"manifest.json\", \"utf8\"));
+if (!m.background?.service_worker) { console.error(\"Missing background.service_worker\"); process.exit(1); }
+if (!Array.isArray(m.background?.scripts) || !m.background.scripts.length) { console.error(\"Missing background.scripts for Firefox\"); process.exit(1); }
+if (!m.browser_specific_settings?.gecko?.id) { console.error(\"Missing gecko.id\"); process.exit(1); }
+if (!m.browser_specific_settings?.gecko_android) { console.error(\"Missing gecko_android\"); process.exit(1); }
 const files = [
   m.action.default_popup,
   m.background.service_worker,
+  ...m.background.scripts,
   ...m.content_scripts.flatMap(cs => [...(cs.js || []), ...(cs.css || [])]),
   ...m.web_accessible_resources.flatMap(r => r.resources || [])
 ];
 for (const f of files) {
   if (!fs.existsSync(f)) { console.error(\"Missing:\", f); process.exit(1); }
 }
-'" "manifest.json referenced files exist"
+'" "manifest.json cross-browser keys & referenced files exist"
 
 # 4. Run full automated unit & integrity test suite
 echo ""

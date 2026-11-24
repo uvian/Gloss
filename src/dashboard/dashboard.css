@@ -266,3 +266,60 @@ body {
 .d-btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
 .d-btn-danger { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
 .d-btn-danger:hover:not(:disabled) { filter: brightness(0.95); }
+
+/* Mobile & Narrow Viewport Layout (desktop >= 641px unchanged) */
+@media (max-width: 640px) {
+  .d-shell {
+    padding: 14px 14px calc(36px + env(safe-area-inset-bottom, 0px));
+  }
+  .d-topbar {
+    gap: 10px;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+  }
+  .d-topbar-right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .d-nav {
+    flex: 1;
+    width: 100%;
+  }
+  .d-nav-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 6px;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .d-heatmap-card { padding: 12px; }
+  .d-hm-grid {
+    grid-template-columns: repeat(15, 1fr);
+    gap: 4px;
+  }
+  .hm-cell { min-width: 0; max-height: 20px; }
+  .d-review-head { align-items: stretch; gap: 10px; }
+  .d-review-controls { width: 100%; justify-content: space-between; }
+  .d-mode-pills { width: 100%; }
+  .d-mode-pill { flex: 1; padding: 7px 6px; font-size: 12.5px; }
+  .fc-card { padding: 18px 16px; border-radius: 12px; }
+  .fc-word { font-size: 26px; word-break: break-word; }
+  .fc-zh { font-size: 17px; }
+  .fc-rate-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .fc-rate-btn { padding: 11px 8px; min-height: 48px; }
+  .fc-drill-form { flex-direction: column; }
+  .fc-drill-input { width: 100%; }
+  .fc-foot { flex-wrap: wrap; gap: 8px; }
+  .d-vocab-bar { align-items: stretch; }
+  .d-vocab-tools { width: 100%; }
+  .d-search { width: 100%; flex: 1 1 100%; min-height: 36px; }
+  .d-row-item { flex-direction: column; align-items: stretch; gap: 8px; padding: 11px 12px; }
+  .d-row-actions { justify-content: flex-end; flex-wrap: wrap; }
+  .d-card { padding: 14px; }
+}
+
+@media (pointer: coarse) {
+  .d-btn, .d-subtab, .d-nav-btn, .d-mode-pill { min-height: 36px; }
+  .d-input, .d-select { min-height: 38px; font-size: 14px; }
+}
