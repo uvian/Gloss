@@ -1,5 +1,14 @@
 # IFLL — 更新日志
 
+## v0.5.1 — 2026-11-23
+
+### Mozilla AMO 审核零错误零警告改造（全量零 `innerHTML`）
+- **全面消除 `innerHTML` 警告**：在 `src/shared/utils.js` 新增安全 DOM 构建工具 `createEl` / `createSvg` / `renderBoldFragment`，将 `src/content/shadow-ui.js`、`src/dashboard/dashboard.js` 与 `src/popup/popup.js` 中的全部 `innerHTML` 赋值与字符串拼接 SVG 图标彻底重构为原生 DOM API 与 `createElementNS`（同时校验学习中心原句来源链接协议），实现全仓库零 `innerHTML` / `outerHTML` / `insertAdjacentHTML`。
+- **修复 Firefox 扩展名称长度超限与 `service_worker` 警告**：将 `manifest.json` 名称精简至 33 字符（满足 Firefox ≤ 45 字符限制），并升级 `scripts/pack-firefox.sh` 在打入 `.xpi` 时自动剔除 Firefox 副本中的 `background.service_worker` 字段（保留仓库源码对 Chrome + Firefox 的双端直接加载能力），使 AMO 自动校验达成 0 错误、0 警告。
+- **固化静态防回归守卫**：在 `prepush-check.sh` 增加 `manifest.json` 名称长度 ≤ 45 校验与全量零 `innerHTML` 检查。
+
+---
+
 ## v0.5.0 — 2026-11-23
 
 ### Firefox 桌面 / 安卓端全面兼容与移动端深度交互适配

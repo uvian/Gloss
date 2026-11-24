@@ -12,15 +12,20 @@
 
   const IFLL = (root.IFLL = root.IFLL || {});
 
-  const ICONS = {
-    speak: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
-    copy: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
-    check: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
-    regen: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>',
-    close: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-    book: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
-    eye: '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+  const ICON_DEFS = {
+    speak: [14, 2, [['polygon', { points: '11 5 6 9 2 9 2 15 6 15 11 19 11 5' }], ['path', { d: 'M15.54 8.46a5 5 0 0 1 0 7.07' }], ['path', { d: 'M19.07 4.93a10 10 0 0 1 0 14.14' }]]],
+    copy:  [13, 2, [['rect', { x: '9', y: '9', width: '13', height: '13', rx: '2' }], ['path', { d: 'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1' }]]],
+    check: [13, 2.2, [['polyline', { points: '20 6 9 17 4 12' }]]],
+    regen: [13, 2, [['path', { d: 'M21 12a9 9 0 1 1-2.64-6.36' }], ['polyline', { points: '21 3 21 9 15 9' }]]],
+    close: [14, 2, [['line', { x1: '18', y1: '6', x2: '6', y2: '18' }], ['line', { x1: '6', y1: '6', x2: '18', y2: '18' }]]],
+    book:  [13, 2, [['path', { d: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20' }], ['path', { d: 'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z' }]]],
+    eye:   [13, 2, [['path', { d: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z' }], ['circle', { cx: '12', cy: '12', r: '3' }]]]
   };
+
+  function makeIcon(name) {
+    const def = ICON_DEFS[name];
+    return def ? IFLL.utils.createSvg('0 0 24 24', def[0], def[2], def[1]) : document.createTextNode('');
+  }
 
   const SHADOW_CSS = `
     :host {
@@ -502,46 +507,47 @@
     _ttEl.className = 'tt-card';
     _rootEl.appendChild(_ttEl);
 
+    const el = IFLL.utils.createEl;
+
     // 3. Selection Toolbar (with 词卡 button for short selections!)
-    _selWrap = document.createElement('div');
-    _selWrap.className = 'sel-wrap';
-    _selWrap.innerHTML = `
-      <div class="sel-bar">
-        <button class="sel-btn" data-sel="translate">翻译</button>
-        <button class="sel-btn" data-sel="explain">解释</button>
-        <button class="sel-btn" data-sel="card" id="selCardBtn">词卡</button>
-        <button class="sel-btn" data-sel="speak">朗读</button>
-        <button class="sel-btn" data-sel="copy">复制</button>
-      </div>
-      <div class="sel-result"></div>
-    `;
-    _selResult = _selWrap.querySelector('.sel-result');
-    _selCardBtn = _selWrap.querySelector('#selCardBtn');
-    const selBar = _selWrap.querySelector('.sel-bar');
+    _selCardBtn = el('button', { className: 'sel-btn', id: 'selCardBtn', dataset: { sel: 'card' }, text: '词卡' });
+    const selBar = el('div', { className: 'sel-bar' },
+      el('button', { className: 'sel-btn', dataset: { sel: 'translate' }, text: '翻译' }),
+      el('button', { className: 'sel-btn', dataset: { sel: 'explain' }, text: '解释' }),
+      _selCardBtn,
+      el('button', { className: 'sel-btn', dataset: { sel: 'speak' }, text: '朗读' }),
+      el('button', { className: 'sel-btn', dataset: { sel: 'copy' }, text: '复制' })
+    );
+    _selResult = el('div', { className: 'sel-result' });
+    _selWrap = el('div', { className: 'sel-wrap' }, selBar, _selResult);
     selBar.addEventListener('mousedown', (e) => e.preventDefault());
     selBar.addEventListener('click', onSelActionClick);
     _rootEl.appendChild(_selWrap);
 
     // 4. Floating Mode Capsule (supports vertical thumb-drag on mobile)
-    _floatWrap = document.createElement('div');
-    _floatWrap.className = 'float-wrap';
-    _floatWrap.innerHTML = `
-      <div class="float-menu">
-        <button class="float-menu-item" data-mode="replace"><span>替换学习</span><span class="float-dot dot-replace"></span></button>
-        <button class="float-menu-item" data-mode="annotate"><span>标注学习</span><span class="float-dot dot-annotate"></span></button>
-        <button class="float-menu-item" data-mode="translate"><span>对比翻译</span><span class="float-dot dot-translate"></span></button>
-        <button class="float-menu-item" data-mode="off"><span>关闭本页</span><span class="float-dot dot-off"></span></button>
-        <div class="float-menu-sep"></div>
-        <button class="float-menu-item" data-cmd="toggle-trans" style="display:none"><span>显隐译文</span>${ICONS.eye}</button>
-        <button class="float-menu-item" data-cmd="dashboard"><span>学习中心</span>${ICONS.book}</button>
-      </div>
-      <button class="float-pill" type="button" title="IFLL 快捷切换">
-        <span class="float-dot dot-off"></span>
-        <span class="float-label">IFLL</span>
-      </button>
-    `;
-    _floatMenu = _floatWrap.querySelector('.float-menu');
-    _floatPill = _floatWrap.querySelector('.float-pill');
+    const modeItem = (mode, label, dotCls) =>
+      el('button', { className: 'float-menu-item', dataset: { mode } },
+        el('span', { text: label }),
+        el('span', { className: `float-dot ${dotCls}` })
+      );
+    _floatMenu = el('div', { className: 'float-menu' },
+      modeItem('replace', '替换学习', 'dot-replace'),
+      modeItem('annotate', '标注学习', 'dot-annotate'),
+      modeItem('translate', '对比翻译', 'dot-translate'),
+      modeItem('off', '关闭本页', 'dot-off'),
+      el('div', { className: 'float-menu-sep' }),
+      el('button', { className: 'float-menu-item', dataset: { cmd: 'toggle-trans' }, style: 'display:none' },
+        el('span', { text: '显隐译文' }), makeIcon('eye')
+      ),
+      el('button', { className: 'float-menu-item', dataset: { cmd: 'dashboard' } },
+        el('span', { text: '学习中心' }), makeIcon('book')
+      )
+    );
+    _floatPill = el('button', { className: 'float-pill', type: 'button', title: 'IFLL 快捷切换' },
+      el('span', { className: 'float-dot dot-off' }),
+      el('span', { className: 'float-label', text: 'IFLL' })
+    );
+    _floatWrap = el('div', { className: 'float-wrap' }, _floatMenu, _floatPill);
 
     let pillTouch = null;
     _floatPill.addEventListener('touchstart', (e) => {
@@ -634,9 +640,12 @@
     if (isTooltipOpen()) return;
     ensureMounted();
     applyTheme();
-    const esc = IFLL.utils.escapeHtml;
+    const el = IFLL.utils.createEl;
     const zh = data.zhDisplay || data.zh || '';
-    _hoverPill.innerHTML = `<span class="hover-en">${esc(data.en)}</span>${data.ipa ? `<span class="hover-ipa">${esc(data.ipa)}</span>` : ''}${zh ? `<span class="hover-zh">${esc(zh)}</span>` : ''}`;
+    const nodes = [el('span', { className: 'hover-en', text: data.en || '' })];
+    if (data.ipa) nodes.push(el('span', { className: 'hover-ipa', text: data.ipa }));
+    if (zh) nodes.push(el('span', { className: 'hover-zh', text: zh }));
+    _hoverPill.replaceChildren(...nodes);
     _hoverPill.style.display = 'flex';
 
     const margin = 8;
@@ -706,58 +715,65 @@
     _activeWord = null;
   }
 
-  function renderExamplesHtml(examples, examplesCn) {
-    if (!examples || !examples.length) return '';
-    const esc = IFLL.utils.escapeHtml;
-    const bold = IFLL.utils.renderBoldHtml;
-    return examples.slice(0, 3).map((ex, i) => {
-      const enText = typeof ex === 'string' ? ex : (ex.en || '');
-      const cnText = typeof ex === 'string' ? (examplesCn?.[i] || '') : (ex.cn || '');
-      if (!enText) return '';
-      return `
-        <div class="tt-ex-item">
-          <div class="tt-ex-en">${esc(enText)}</div>
-          ${cnText ? `<div class="tt-ex-cn">${bold(cnText)}</div>` : ''}
-          <div class="tt-ex-tools">
-            <button class="tt-icon-btn" data-ex-speak="${esc(enText)}" title="朗读例句">${ICONS.speak}</button>
-            <button class="tt-icon-btn" data-ex-copy="${esc(enText)}" title="复制例句">${ICONS.copy}</button>
-          </div>
-        </div>
-      `;
-    }).join('');
+  function renderExamplesNodes(examples, examplesCn) {
+    if (!examples || !examples.length) return [];
+    const el = IFLL.utils.createEl;
+    const nodes = [];
+    for (let i = 0; i < Math.min(3, examples.length); i++) {
+      const ex = examples[i];
+      const enText = typeof ex === 'string' ? ex : (ex?.en || '');
+      const cnText = typeof ex === 'string' ? (examplesCn?.[i] || '') : (ex?.cn || '');
+      if (!enText) continue;
+      nodes.push(el('div', { className: 'tt-ex-item' },
+        el('div', { className: 'tt-ex-en', text: enText }),
+        cnText ? el('div', { className: 'tt-ex-cn' }, IFLL.utils.renderBoldFragment(cnText)) : null,
+        el('div', { className: 'tt-ex-tools' },
+          el('button', { className: 'tt-icon-btn', dataset: { exSpeak: enText }, title: '朗读例句' }, makeIcon('speak')),
+          el('button', { className: 'tt-icon-btn', dataset: { exCopy: enText }, title: '复制例句' }, makeIcon('copy'))
+        )
+      ));
+    }
+    return nodes;
   }
 
-  function renderDeepResultHtml(data, examples, cached, contextMeaning = '') {
-    const esc = IFLL.utils.escapeHtml;
-    let body = '';
+  function renderDeepResultNodes(data, examples, cached, contextMeaning = '') {
+    const el = IFLL.utils.createEl;
+    const bodyNodes = [];
     if (contextMeaning) {
-      body += `<div class="tt-context-meaning">本句语境：${esc(contextMeaning)}</div>`;
+      bodyNodes.push(el('div', { className: 'tt-context-meaning', text: `本句语境：${contextMeaning}` }));
     }
     if (Array.isArray(data?.synonyms) && data.synonyms.length) {
-      body += `<div class="tt-deep-row"><span class="tt-deep-tag">同义</span>${esc(data.synonyms.join(', '))}</div>`;
+      bodyNodes.push(el('div', { className: 'tt-deep-row' }, el('span', { className: 'tt-deep-tag', text: '同义' }), data.synonyms.join(', ')));
     }
     if (Array.isArray(data?.antonyms) && data.antonyms.length) {
-      body += `<div class="tt-deep-row"><span class="tt-deep-tag">反义</span>${esc(data.antonyms.join(', '))}</div>`;
+      bodyNodes.push(el('div', { className: 'tt-deep-row' }, el('span', { className: 'tt-deep-tag', text: '反义' }), data.antonyms.join(', ')));
     }
     if (Array.isArray(data?.collocations) && data.collocations.length) {
-      body += `<div class="tt-deep-row"><span class="tt-deep-tag">搭配</span>${esc(data.collocations.join(' · '))}</div>`;
+      bodyNodes.push(el('div', { className: 'tt-deep-row' }, el('span', { className: 'tt-deep-tag', text: '搭配' }), data.collocations.join(' · ')));
     }
     if (data?.usage) {
-      body += `<div class="tt-deep-usage">${esc(data.usage)}</div>`;
+      bodyNodes.push(el('div', { className: 'tt-deep-usage', text: data.usage }));
     }
     const exList = Array.isArray(examples) && examples.length ? examples : (data?.examples || []);
     if (exList.length) {
-      body += `<div class="tt-divider"></div><div class="tt-section-head"><span class="tt-label">AI 例句</span></div>` + renderExamplesHtml(exList);
+      bodyNodes.push(
+        el('div', { className: 'tt-divider' }),
+        el('div', { className: 'tt-section-head' }, el('span', { className: 'tt-label', text: 'AI 例句' })),
+        ...renderExamplesNodes(exList)
+      );
     }
-    if (!body) body = `<div class="tt-deep-usage">暂无更多解析数据</div>`;
+    if (!bodyNodes.length) {
+      bodyNodes.push(el('div', { className: 'tt-deep-usage', text: '暂无更多解析数据' }));
+    }
 
-    return `
-      <div class="tt-section-head">
-        <span class="tt-label">AI 深度解析 ${cached ? '<span class="tt-cached-tag">· 已缓存</span>' : ''}</span>
-        <button class="tt-icon-btn" data-action="regen-deep" title="结合本句重新生成">${ICONS.regen}</button>
-      </div>
-      <div class="tt-deep-box">${body}</div>
-    `;
+    const head = el('div', { className: 'tt-section-head' },
+      el('span', { className: 'tt-label' },
+        'AI 深度解析 ',
+        cached ? el('span', { className: 'tt-cached-tag', text: '· 已缓存' }) : null
+      ),
+      el('button', { className: 'tt-icon-btn', dataset: { action: 'regen-deep' }, title: '结合本句重新生成' }, makeIcon('regen'))
+    );
+    return [head, el('div', { className: 'tt-deep-box' }, bodyNodes)];
   }
 
   async function showWordCard(wordData, anchorRect, { autoAnalyze = false } = {}) {
@@ -799,83 +815,99 @@
     _settings = latestSettings;
 
     const w = _activeWord;
-    const esc = IFLL.utils.escapeHtml;
+    const el = IFLL.utils.createEl;
     const inReview = (latestSettings.reviewQueue || []).some(r => r.zh === w.zh || r.en.toLowerCase() === w.en.toLowerCase());
     const isKnown = (latestSettings.knownWords || []).includes(w.zh);
     const levelLabel = IFLL.constants.LEVEL_LABELS[w.level] || w.level || '';
     const customActions = latestSettings.customActions || [];
 
-    let html = `
-      <div class="tt-handle"><span class="tt-handle-bar"></span><button class="tt-close" data-action="close" title="关闭 (Esc)">${ICONS.close}</button></div>
-      <div class="tt-head">
-        <div class="tt-word-wrap">
-          <span class="tt-en">${esc(w.en)}</span>
-          <button class="tt-icon-btn" data-action="speak" title="朗读发音">${ICONS.speak}</button>
-        </div>
-        ${levelLabel ? `<span class="tt-badge">${esc(levelLabel)}</span>` : ''}
-      </div>
-      <div class="tt-meta">
-        ${w.zhDisplay ? `<span class="tt-zh">${esc(w.zhDisplay)}</span>` : ''}
-        ${w.ipa ? `<span>·</span><span class="tt-ipa">${esc(w.ipa)}</span>` : ''}
-        <span>·</span><span class="tt-pos">${esc(IFLL.utils.posLabel(w.pos))}</span><span>${esc(w.posCn)}</span>
-        ${w.surface && w.surface.toLowerCase() !== w.en.toLowerCase() ? `<span class="tt-surface">(${esc(w.surface)})</span>` : ''}
-      </div>
-      ${w.def ? `<div class="tt-def">${esc(w.def)}</div>` : ''}
-      ${w.context ? `<div class="tt-context" title="当前网页语境">“${esc(w.context)}”</div>` : ''}
-    `;
+    const nodes = [
+      el('div', { className: 'tt-handle' },
+        el('span', { className: 'tt-handle-bar' }),
+        el('button', { className: 'tt-close', dataset: { action: 'close' }, title: '关闭 (Esc)' }, makeIcon('close'))
+      ),
+      el('div', { className: 'tt-head' },
+        el('div', { className: 'tt-word-wrap' },
+          el('span', { className: 'tt-en', text: w.en }),
+          el('button', { className: 'tt-icon-btn', dataset: { action: 'speak' }, title: '朗读发音' }, makeIcon('speak'))
+        ),
+        levelLabel ? el('span', { className: 'tt-badge', text: levelLabel }) : null
+      ),
+      el('div', { className: 'tt-meta' },
+        w.zhDisplay ? el('span', { className: 'tt-zh', text: w.zhDisplay }) : null,
+        w.ipa ? [el('span', { text: '·' }), el('span', { className: 'tt-ipa', text: w.ipa })] : null,
+        el('span', { text: '·' }),
+        el('span', { className: 'tt-pos', text: IFLL.utils.posLabel(w.pos) }),
+        el('span', { text: w.posCn }),
+        (w.surface && w.surface.toLowerCase() !== w.en.toLowerCase())
+          ? el('span', { className: 'tt-surface', text: `(${w.surface})` })
+          : null
+      ),
+      w.def ? el('div', { className: 'tt-def', text: w.def }) : null,
+      w.context ? el('div', { className: 'tt-context', title: '当前网页语境', text: `“${w.context}”` }) : null
+    ];
 
     if (w.examples.length) {
-      html += `<div class="tt-divider"></div><div class="tt-section-head"><span class="tt-label">内置例句</span></div>` + renderExamplesHtml(w.examples, w.examplesCn);
+      nodes.push(
+        el('div', { className: 'tt-divider' }),
+        el('div', { className: 'tt-section-head' }, el('span', { className: 'tt-label', text: '内置例句' })),
+        ...renderExamplesNodes(w.examples, w.examplesCn)
+      );
     }
 
-    html += `<div class="tt-divider"></div><div id="deep-section">`;
-    if (cachedAi?.deep && !autoAnalyze) {
-      html += renderDeepResultHtml(cachedAi.deep, cachedAi.examples, true);
-    } else {
-      html += `
-        <div class="tt-section-head"><span class="tt-label">AI 解析</span></div>
-        <div class="tt-deep-box">
-          <button class="tt-btn tt-btn-accent" data-action="deep-analyze" style="width:100%">${w.context ? 'AI 结合本句深度解析' : 'AI 深度解析与例句'}</button>
-        </div>
-      `;
-    }
-    html += `</div>`;
+    const deepChildren = (cachedAi?.deep && !autoAnalyze)
+      ? renderDeepResultNodes(cachedAi.deep, cachedAi.examples, true)
+      : [
+          el('div', { className: 'tt-section-head' }, el('span', { className: 'tt-label', text: 'AI 解析' })),
+          el('div', { className: 'tt-deep-box' },
+            el('button', {
+              className: 'tt-btn tt-btn-accent',
+              dataset: { action: 'deep-analyze' },
+              style: 'width:100%',
+              text: w.context ? 'AI 结合本句深度解析' : 'AI 深度解析与例句'
+            })
+          )
+        ];
+    nodes.push(el('div', { className: 'tt-divider' }), el('div', { id: 'deep-section' }, deepChildren));
 
     if (customActions.length) {
-      html += `<div class="tt-divider"></div><div class="tt-section-head"><span class="tt-label">自定义动作</span></div><div class="tt-actions" id="custom-section">`;
-      for (const act of customActions) {
-        html += `<button class="tt-btn" data-custom-id="${esc(act.id)}">${esc(act.name)}</button>`;
-      }
-      html += `</div><div class="tt-deep-box" id="custom-result" style="display:none"></div>`;
+      nodes.push(
+        el('div', { className: 'tt-divider' }),
+        el('div', { className: 'tt-section-head' }, el('span', { className: 'tt-label', text: '自定义动作' })),
+        el('div', { className: 'tt-actions', id: 'custom-section' },
+          customActions.map(act => el('button', { className: 'tt-btn', dataset: { customId: act.id }, text: act.name }))
+        ),
+        el('div', { className: 'tt-deep-box', id: 'custom-result', style: 'display:none' })
+      );
     }
 
-    html += `
-      <div class="tt-divider"></div>
-      <div class="tt-actions">
-        <button class="tt-btn tt-btn-known" data-action="known" ${isKnown ? 'disabled' : ''}>${isKnown ? '✓ 已掌握' : '✓ 认识'}</button>
-        <button class="tt-btn" data-action="unknown">✗ 加入复习</button>
-        <button class="tt-btn" data-action="add-word">+ 生词本</button>
-      </div>
-      <div class="tt-actions tt-actions-tight">
-        <button class="tt-btn tt-btn-danger" data-action="exclude-site">排除此站</button>
-        <button class="tt-btn" data-action="open-dashboard">打开复习中心</button>
-      </div>
-    `;
+    nodes.push(
+      el('div', { className: 'tt-divider' }),
+      el('div', { className: 'tt-actions' },
+        el('button', { className: 'tt-btn tt-btn-known', dataset: { action: 'known' }, disabled: isKnown, text: isKnown ? '✓ 已掌握' : '✓ 认识' }),
+        el('button', { className: 'tt-btn', dataset: { action: 'unknown' }, text: '✗ 加入复习' }),
+        el('button', { className: 'tt-btn', dataset: { action: 'add-word' }, text: '+ 生词本' })
+      ),
+      el('div', { className: 'tt-actions tt-actions-tight' },
+        el('button', { className: 'tt-btn tt-btn-danger', dataset: { action: 'exclude-site' }, text: '排除此站' }),
+        el('button', { className: 'tt-btn', dataset: { action: 'open-dashboard' }, text: '打开复习中心' })
+      )
+    );
 
     if (inReview) {
-      html += `
-        <div class="tt-divider"></div>
-        <div class="tt-section-head"><span class="tt-label">间隔重复评分</span></div>
-        <div class="tt-actions" id="review-section">
-          <button class="tt-btn tt-r1" data-review="1">忘记</button>
-          <button class="tt-btn tt-r2" data-review="2">模糊</button>
-          <button class="tt-btn tt-r3" data-review="3">正确</button>
-          <button class="tt-btn tt-r4" data-review="4">轻松</button>
-        </div>
-      `;
+      nodes.push(
+        el('div', { className: 'tt-divider' }),
+        el('div', { className: 'tt-section-head' }, el('span', { className: 'tt-label', text: '间隔重复评分' })),
+        el('div', { className: 'tt-actions', id: 'review-section' },
+          el('button', { className: 'tt-btn tt-r1', dataset: { review: '1' }, text: '忘记' }),
+          el('button', { className: 'tt-btn tt-r2', dataset: { review: '2' }, text: '模糊' }),
+          el('button', { className: 'tt-btn tt-r3', dataset: { review: '3' }, text: '正确' }),
+          el('button', { className: 'tt-btn tt-r4', dataset: { review: '4' }, text: '轻松' })
+        )
+      );
     }
 
-    _ttEl.innerHTML = html;
+    _ttEl.replaceChildren(...nodes.filter(Boolean));
     _ttEl.style.display = 'block';
     positionTooltip(anchorRect);
     bindTooltipEvents(token);
@@ -892,14 +924,17 @@
     const w = _activeWord;
     const section = _ttEl.querySelector('#deep-section');
     if (!section) return;
+    const el = IFLL.utils.createEl;
 
-    section.innerHTML = `
-      <div class="tt-section-head">
-        <span class="tt-label">AI 解析中…</span>
-        <button class="tt-icon-btn spinning" disabled>${ICONS.regen}</button>
-      </div>
-      <div class="tt-deep-box"><div class="tt-stream" id="stream-box">连接模型…<span class="tt-cursor">▌</span></div></div>
-    `;
+    section.replaceChildren(
+      el('div', { className: 'tt-section-head' },
+        el('span', { className: 'tt-label', text: 'AI 解析中…' }),
+        el('button', { className: 'tt-icon-btn spinning', disabled: true }, makeIcon('regen'))
+      ),
+      el('div', { className: 'tt-deep-box' },
+        el('div', { className: 'tt-stream', id: 'stream-box' }, '连接模型…', el('span', { className: 'tt-cursor', text: '▌' }))
+      )
+    );
     positionTooltip();
 
     let port;
@@ -923,13 +958,13 @@
         if (box) {
           box.classList.toggle('reasoning', !!msg.reasoning);
           const tail = accum.length > 260 ? '…' + accum.slice(-260) : accum;
-          box.innerHTML = IFLL.utils.escapeHtml(tail) + '<span class="tt-cursor">▌</span>';
+          box.replaceChildren(document.createTextNode(tail), el('span', { className: 'tt-cursor', text: '▌' }));
           box.scrollTop = box.scrollHeight;
         }
       } else if (msg.done) {
         _activePort = null;
         try { port.disconnect(); } catch (_) {}
-        section.innerHTML = renderDeepResultHtml(msg.data, msg.examples, !!msg.cached, msg.contextMeaning || '');
+        section.replaceChildren(...renderDeepResultNodes(msg.data, msg.examples, !!msg.cached, msg.contextMeaning || ''));
         positionTooltip();
       } else if (msg.error) {
         _activePort = null;
@@ -954,16 +989,17 @@
 
   function renderDeepError(section, token, errorMsg) {
     if (token !== _renderToken) return;
-    section.innerHTML = `
-      <div class="tt-section-head">
-        <span class="tt-label">AI 解析</span>
-        <button class="tt-icon-btn" data-action="regen-deep" title="重试">${ICONS.regen}</button>
-      </div>
-      <div class="tt-deep-box">
-        <div class="tt-err">${IFLL.utils.escapeHtml(errorMsg)}</div>
-        <button class="tt-btn tt-btn-accent" data-action="deep-analyze" style="width:100%">重试解析</button>
-      </div>
-    `;
+    const el = IFLL.utils.createEl;
+    section.replaceChildren(
+      el('div', { className: 'tt-section-head' },
+        el('span', { className: 'tt-label', text: 'AI 解析' }),
+        el('button', { className: 'tt-icon-btn', dataset: { action: 'regen-deep' }, title: '重试' }, makeIcon('regen'))
+      ),
+      el('div', { className: 'tt-deep-box' },
+        el('div', { className: 'tt-err', text: errorMsg }),
+        el('button', { className: 'tt-btn tt-btn-accent', dataset: { action: 'deep-analyze' }, style: 'width:100%', text: '重试解析' })
+      )
+    );
     positionTooltip();
   }
 
@@ -1005,6 +1041,7 @@
       });
     }
 
+    const el = IFLL.utils.createEl;
     _ttEl.onclick = async (e) => {
       const btn = e.target.closest('button');
       if (!btn || btn.disabled || !_activeWord) return;
@@ -1013,14 +1050,14 @@
       if (btn.dataset.exSpeak) { speakText(btn.dataset.exSpeak, 'en-US'); return; }
       if (btn.dataset.exCopy) {
         const ok = await IFLL.utils.copyText(btn.dataset.exCopy);
-        btn.innerHTML = ok ? ICONS.check : ICONS.close;
-        setTimeout(() => { btn.innerHTML = ICONS.copy; }, 1400);
+        btn.replaceChildren(makeIcon(ok ? 'check' : 'close'));
+        setTimeout(() => { btn.replaceChildren(makeIcon('copy')); }, 1400);
         return;
       }
       if (btn.dataset.review) {
         await IFLL.storage.scoreReview(w.zh, parseInt(btn.dataset.review, 10));
         const box = _ttEl.querySelector('#review-section');
-        if (box) box.innerHTML = '<span style="font-size:12px;color:var(--text-dim);padding:4px 0">复习进度已更新</span>';
+        if (box) box.replaceChildren(el('span', { style: 'font-size:12px;color:var(--text-dim);padding:4px 0', text: '复习进度已更新' }));
         return;
       }
       if (btn.dataset.customId) {
@@ -1040,20 +1077,20 @@
         if (out) {
           out.style.display = 'block';
           if (res?.error) {
-            out.innerHTML = `<div class="tt-err">${IFLL.utils.escapeHtml(res.error)}</div>`;
+            out.replaceChildren(el('div', { className: 'tt-err', text: res.error }));
           } else {
             const data = res?.result || {};
-            let h = '';
-            if (data.text) h += `<div class="tt-deep-usage">${IFLL.utils.escapeHtml(data.text)}</div>`;
+            const outNodes = [];
+            if (data.text) outNodes.push(el('div', { className: 'tt-deep-usage', text: data.text }));
             for (const [k, v] of Object.entries(data)) {
               if (k === 'text') continue;
               if (Array.isArray(v) && v.length) {
-                h += `<div class="tt-deep-row"><span class="tt-deep-tag">${IFLL.utils.escapeHtml(k)}</span>${IFLL.utils.escapeHtml(v.join(', '))}</div>`;
+                outNodes.push(el('div', { className: 'tt-deep-row' }, el('span', { className: 'tt-deep-tag', text: k }), v.join(', ')));
               } else if (typeof v === 'string' && v) {
-                h += `<div class="tt-deep-row"><span class="tt-deep-tag">${IFLL.utils.escapeHtml(k)}</span>${IFLL.utils.escapeHtml(v)}</div>`;
+                outNodes.push(el('div', { className: 'tt-deep-row' }, el('span', { className: 'tt-deep-tag', text: k }), v));
               }
             }
-            out.innerHTML = h || '<div class="tt-deep-usage">无结果</div>';
+            out.replaceChildren(...(outNodes.length ? outNodes : [el('div', { className: 'tt-deep-usage', text: '无结果' })]));
           }
           positionTooltip();
         }
@@ -1189,7 +1226,7 @@
     if (_selWrap) {
       _selWrap.style.display = 'none';
       _selResult.style.display = 'none';
-      _selResult.innerHTML = '';
+      _selResult.textContent = '';
     }
   }
 
@@ -1223,6 +1260,7 @@
   async function runSelectionResult(action, text, anchorRect) {
     ensureMounted();
     applyTheme();
+    const el = IFLL.utils.createEl;
     _capturedSelText = text;
     _lastSelRect = anchorRect || { left: window.innerWidth / 2 - 120, top: 80, right: window.innerWidth / 2, bottom: 100, width: 120, height: 24 };
     _selWrap.style.display = 'flex';
@@ -1232,18 +1270,17 @@
 
     const res = await chrome.runtime.sendMessage({ type: 'IFLL_SEL_TOOLBAR', action, text }).catch(() => ({ error: '请求失败' }));
     if (res?.text) {
-      const esc = IFLL.utils.escapeHtml;
       const lang = IFLL.utils.detectTextLanguage(text);
       const canSaveWord = text.length <= 45 && text.split(/\s+/).length <= 5;
-      _selResult.innerHTML = `
-        <div>${esc(res.text)}</div>
-        <div class="sel-result-foot">
-          <button class="sel-foot-btn" data-res="copy">复制结果</button>
-          <button class="sel-foot-btn" data-res="speak">朗读</button>
-          ${canSaveWord ? '<button class="sel-foot-btn" data-res="save">加入复习</button>' : ''}
-          <button class="sel-foot-btn" data-res="close">关闭</button>
-        </div>
-      `;
+      _selResult.replaceChildren(
+        el('div', { text: res.text }),
+        el('div', { className: 'sel-result-foot' },
+          el('button', { className: 'sel-foot-btn', dataset: { res: 'copy' }, text: '复制结果' }),
+          el('button', { className: 'sel-foot-btn', dataset: { res: 'speak' }, text: '朗读' }),
+          canSaveWord ? el('button', { className: 'sel-foot-btn', dataset: { res: 'save' }, text: '加入复习' }) : null,
+          el('button', { className: 'sel-foot-btn', dataset: { res: 'close' }, text: '关闭' })
+        )
+      );
       _selResult.onclick = async (ev) => {
         const fb = ev.target.closest('button');
         if (!fb) return;
@@ -1268,7 +1305,7 @@
         }
       };
     } else {
-      _selResult.innerHTML = `<div class="tt-err">${IFLL.utils.escapeHtml(res?.error || '请求失败')}</div>`;
+      _selResult.replaceChildren(el('div', { className: 'tt-err', text: res?.error || '请求失败' }));
     }
     positionSelToolbar(_lastSelRect);
   }
@@ -1358,18 +1395,17 @@
   function showWelcomePrompt(hostname, defaultSuggestedMode) {
     ensureMounted();
     applyTheme();
+    const el = IFLL.utils.createEl;
     return new Promise((resolve) => {
-      const bar = document.createElement('div');
-      bar.className = 'prompt-bar';
-      bar.innerHTML = `
-        <span class="prompt-title">IFLL · 选择当前页面学习模式</span>
-        <div class="prompt-actions">
-          <button class="prompt-btn ${defaultSuggestedMode === 'replace' ? 'primary' : ''}" data-m="replace">替换</button>
-          <button class="prompt-btn ${defaultSuggestedMode === 'annotate' ? 'primary' : ''}" data-m="annotate">标注</button>
-          <button class="prompt-btn" data-m="translate">翻译</button>
-          <button class="prompt-btn" data-m="off">暂不</button>
-        </div>
-      `;
+      const bar = el('div', { className: 'prompt-bar' },
+        el('span', { className: 'prompt-title', text: 'IFLL · 选择当前页面学习模式' }),
+        el('div', { className: 'prompt-actions' },
+          el('button', { className: `prompt-btn${defaultSuggestedMode === 'replace' ? ' primary' : ''}`, dataset: { m: 'replace' }, text: '替换' }),
+          el('button', { className: `prompt-btn${defaultSuggestedMode === 'annotate' ? ' primary' : ''}`, dataset: { m: 'annotate' }, text: '标注' }),
+          el('button', { className: 'prompt-btn', dataset: { m: 'translate' }, text: '翻译' }),
+          el('button', { className: 'prompt-btn', dataset: { m: 'off' }, text: '暂不' })
+        )
+      );
       _rootEl.appendChild(bar);
       let done = false;
       const finish = (m) => {
@@ -1563,7 +1599,7 @@
         const isShortLookup = text.length <= 36 && text.split(/\s+/).length <= 4;
         if (_selCardBtn) _selCardBtn.style.display = isShortLookup ? 'inline-block' : 'none';
         _selResult.style.display = 'none';
-        _selResult.innerHTML = '';
+        _selResult.textContent = '';
         _selWrap.style.display = 'flex';
         positionSelToolbar(rect);
       }, delayMs);

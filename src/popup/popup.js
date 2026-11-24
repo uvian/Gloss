@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       ? availableModels
       : availableModels.filter(m => m.toLowerCase().includes(q));
 
-    els.modelMenu.innerHTML = '';
+    els.modelMenu.textContent = '';
     comboFocusIdx = -1;
 
     if (!list.length && !curVal) {
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (m === curVal) {
         const chk = document.createElement('span');
         chk.className = 'p-combo-check';
-        chk.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5 8.5 6.5 11.5 12.5 5"/></svg>';
+        chk.appendChild(utils.createSvg('0 0 16 16', 12, [['polyline', { points: '3.5 8.5 6.5 11.5 12.5 5' }]], 2));
         btn.appendChild(chk);
       }
       btn.addEventListener('mousedown', (e) => e.preventDefault());
@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function renderExcluded(sites = []) {
-    els.excludedList.innerHTML = '';
+    els.excludedList.textContent = '';
     if (!sites.length) {
       const span = document.createElement('span');
       span.className = 'p-empty';
@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* Populate Voices safely without innerHTML XSS (guarded for Android WebView/Firefox) */
   function populateVoices(savedVoice) {
-    els.voiceSelect.innerHTML = '';
+    els.voiceSelect.textContent = '';
     const defOpt = document.createElement('option');
     defOpt.value = '';
     defOpt.textContent = '系统默认';

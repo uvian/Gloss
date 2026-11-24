@@ -71,22 +71,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const summary = document.getElementById('hmSummary');
     if (!grid) return;
 
+    const el = utils.createEl;
     const hist = settings.learningHistory || {};
     const streak = utils.computeStreak(hist);
     const knownCount = (settings.knownWords || []).length;
     summary.textContent = `连续打卡 ${streak} 天 · 已掌握 ${knownCount} 词 · 复习队列 ${(settings.reviewQueue || []).length} 词`;
 
     const today = new Date();
-    const cells = [];
+    const frag = document.createDocumentFragment();
     for (let offset = 29; offset >= 0; offset--) {
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - offset);
       const key = utils.getLocalDateStr(d);
       const rec = hist[key] || { learned: 0, reviewed: 0, replaced: 0 };
       const total = (rec.learned || 0) + (rec.reviewed || 0);
       const lv = total === 0 ? 0 : (total <= 3 ? 1 : (total <= 10 ? 2 : 3));
-      cells.push(`<i class="hm-cell lv-${lv}" title="${key}：学习 ${rec.learned || 0} · 复习 ${rec.reviewed || 0}"></i>`);
+      frag.appendChild(el('i', {
+        className: `hm-cell lv-${lv}`,
+        title: `${key}：学习 ${rec.learned || 0} · 复习 ${rec.reviewed || 0}`
+      }));
     }
-    grid.innerHTML = cells.join('');
+    grid.replaceChildren(frag);
   }
 
   async function refreshSettings() {
@@ -135,16 +139,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!pool.length) {
       currentCard = null;
+      const el = utils.createEl;
       const totalQueue = (settings.reviewQueue || []).length;
-      stage.innerHTML = `
-        <div class="d-empty-box">
-          <h2>${totalQueue ? '今日到期词汇已全部复习完成' : '复习队列暂无词汇'}</h2>
-          <p>${totalQueue
+      const actionBtn = totalQueue
+        ? el('button', { id: 'practiceEarlyBtn', className: 'd-btn d-btn-primary', text: '提前练习全部队列' })
+        : el('button', { id: 'gotoVocabBtn', className: 'd-btn d-btn-primary', text: '前往词库管理' });
+      stage.replaceChildren(el('div', { className: 'd-empty-box' },
+        el('h2', { text: totalQueue ? '今日到期词汇已全部复习完成' : '复习队列暂无词汇' }),
+        el('p', {
+          text: totalQueue
             ? `队列中还有 ${totalQueue} 个未到期词汇。你可以休息一下，或提前巩固全部队列。`
-            : '浏览网页点击生词并选择「加入复习」，或在「词库与搭配」中批量导入词表。'}</p>
-          ${totalQueue ? '<button id="practiceEarlyBtn" class="d-btn d-btn-primary">提前练习全部队列</button>' : '<button id="gotoVocabBtn" class="d-btn d-btn-primary">前往词库管理</button>'}
-        </div>
-      `;
+            : '浏览网页点击生词并选择「加入复习」，或在「词库与搭配」中批量导入词表。'
+        }),
+        actionBtn
+      ));
       document.getElementById('practiceEarlyBtn')?.addEventListener('click', () => renderFlashcardStage(true));
       document.getElementById('gotoVocabBtn')?.addEventListener('click', () => activateTab('vocab'));
       return;
@@ -157,7 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function drawCard(card, practiceAll) {
     const stage = document.getElementById('flashcardStage');
-    const esc = utils.escapeHtml;
+    const el = utils.createEl;
     const cachedAi = await storage.getAiCacheEntry(card.en);
 
     // Prepare context / example for Cloze mode
@@ -172,102 +180,127 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (cloze) break;
     }
 
-    let aiHtml = '';
+    let aiNode;
     if (cachedAi?.deep) {
       const d = cachedAi.deep;
-      aiHtml = `<div class="fc-section">`;
-      if (d.collocations?.length) aiHtml += `<div style="font-size:12.5px;margin-bottom:4px"><strong>搭配：</strong>${esc(d.collocations.join(' · '))}</div>`;
-      if (d.usage) aiHtml += `<div style="font-size:12.5px;color:var(--text-muted)">${esc(d.usage)}</div>`;
-      for (const ex of (cachedAi.examples || []).slice(0, 2)) {
-        aiHtml += `<div class="fc-ex"><div>${esc(ex.en || '')}</div>${ex.cn ? `<div class="fc-ex-cn">${utils.renderBoldHtml(ex.cn)}</div>` : ''}</div>`;
+      const aiChildren = [];
+      if (d.collocations?.length) {
+        aiChildren.push(el('div', { style: 'font-size:12.5px;margin-bottom:4px' },
+          el('strong', { text: '搭配：' }),
+          d.collocations.join(' · ')
+        ));
       }
-      aiHtml += `</div>`;
+      if (d.usage) {
+        aiChildren.push(el('div', { style: 'font-size:12.5px;color:var(--text-muted)', text: d.usage }));
+      }
+      for (const ex of (cachedAi.examples || []).slice(0, 2)) {
+        aiChildren.push(el('div', { className: 'fc-ex' },
+          el('div', { text: ex.en || '' }),
+          ex.cn ? el('div', { className: 'fc-ex-cn' }, utils.renderBoldFragment(ex.cn)) : null
+        ));
+      }
+      aiNode = el('div', { className: 'fc-section' }, aiChildren);
     } else {
-      aiHtml = `<div class="fc-section" style="text-align:center"><button id="fcFetchAi" class="d-btn d-btn-sm">获取 AI 深度解析与例句</button></div>`;
+      aiNode = el('div', { className: 'fc-section', style: 'text-align:center' },
+        el('button', { id: 'fcFetchAi', className: 'd-btn d-btn-sm', text: '获取 AI 深度解析与例句' })
+      );
     }
 
-    const contextHtml = card.context ? `
-      <div class="fc-context">
-        <div>“${esc(card.context)}”</div>
-        ${card.sourceUrl ? `<a class="fc-source-link" href="${esc(card.sourceUrl)}" target="_blank" rel="noopener">来源：${esc(card.sourceTitle || card.sourceUrl)}</a>` : ''}
-      </div>
-    ` : '';
+    const safeSourceUrl = (card.sourceUrl && /^https?:\/\//i.test(card.sourceUrl)) ? card.sourceUrl : '';
+    const contextNode = card.context ? el('div', { className: 'fc-context' },
+      el('div', { text: `“${card.context}”` }),
+      safeSourceUrl ? el('a', {
+        className: 'fc-source-link',
+        href: safeSourceUrl,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        text: `来源：${card.sourceTitle || safeSourceUrl}`
+      }) : null
+    ) : null;
 
-    let builtInEx = '';
-    if (Array.isArray(card.examples) && card.examples.length) {
-      builtInEx = `<div class="fc-section">` + card.examples.slice(0, 2).map((ex, i) =>
-        `<div class="fc-ex"><div>${esc(ex)}</div>${card.examplesCn?.[i] ? `<div class="fc-ex-cn">${utils.renderBoldHtml(card.examplesCn[i])}</div>` : ''}</div>`
-      ).join('') + `</div>`;
-    }
+    const builtInExNode = (Array.isArray(card.examples) && card.examples.length)
+      ? el('div', { className: 'fc-section' },
+          card.examples.slice(0, 2).map((ex, i) =>
+            el('div', { className: 'fc-ex' },
+              el('div', { text: ex }),
+              card.examplesCn?.[i]
+                ? el('div', { className: 'fc-ex-cn' }, utils.renderBoldFragment(card.examplesCn[i]))
+                : null
+            )
+          )
+        )
+      : null;
 
-    let frontHtml = '';
+    const posText = `${utils.posLabel(card.pos)} ${card.pos_cn || ''}`.trim();
+    let frontNode;
     if (recallMode === 'spelling') {
-      frontHtml = `
-        <div class="fc-drill-box">
-          <div class="fc-zh">${esc(card.zh)}<span class="fc-pos">${esc(utils.posLabel(card.pos))} ${esc(card.pos_cn || '')}</span></div>
-          <div class="fc-ipa-row">
-            ${card.ipa ? `<span>${esc(card.ipa)}</span>` : ''}
-            <button id="fcSpeak" class="d-btn d-btn-sm" type="button">${isTouchDevice ? '再听一遍' : '再听一遍 (S)'}</button>
-          </div>
-          <form class="fc-drill-form" id="fcDrillForm">
-            <input type="text" class="fc-drill-input" id="fcDrillInput" placeholder="输入听到的英文拼写…" autocomplete="off" spellcheck="false">
-            <button type="submit" class="d-btn d-btn-primary">检查</button>
-          </form>
-          <div class="fc-feedback" id="fcFeedback"></div>
-          <button id="fcRevealBtn" class="d-btn d-btn-sm" type="button">直接看答案</button>
-        </div>
-      `;
+      frontNode = el('div', { className: 'fc-drill-box' },
+        el('div', { className: 'fc-zh' }, card.zh, el('span', { className: 'fc-pos', text: posText })),
+        el('div', { className: 'fc-ipa-row' },
+          card.ipa ? el('span', { text: card.ipa }) : null,
+          el('button', { id: 'fcSpeak', className: 'd-btn d-btn-sm', type: 'button', text: isTouchDevice ? '再听一遍' : '再听一遍 (S)' })
+        ),
+        el('form', { className: 'fc-drill-form', id: 'fcDrillForm' },
+          el('input', { type: 'text', className: 'fc-drill-input', id: 'fcDrillInput', placeholder: '输入听到的英文拼写…', autocomplete: 'off', spellcheck: 'false' }),
+          el('button', { type: 'submit', className: 'd-btn d-btn-primary', text: '检查' })
+        ),
+        el('div', { className: 'fc-feedback', id: 'fcFeedback' }),
+        el('button', { id: 'fcRevealBtn', className: 'd-btn d-btn-sm', type: 'button', text: '直接看答案' })
+      );
     } else if (recallMode === 'cloze') {
       const promptSent = cloze
         ? cloze.masked
         : `请根据中文释义「${card.zh}」拼出对应英文词（该词暂无可挖空英文例句，可点下方获取 AI 例句）。`;
-      frontHtml = `
-        <div class="fc-drill-box">
-          <div class="fc-cloze-sent">${esc(promptSent)}</div>
-          <div style="font-size:13px;color:var(--text-muted)">提示：${esc(card.zh)} ${card.ipa ? `· ${esc(card.ipa)}` : ''}</div>
-          <form class="fc-drill-form" id="fcDrillForm">
-            <input type="text" class="fc-drill-input" id="fcDrillInput" placeholder="填入缺失的英文词…" autocomplete="off" spellcheck="false">
-            <button type="submit" class="d-btn d-btn-primary">验证</button>
-          </form>
-          <div class="fc-feedback" id="fcFeedback"></div>
-          <button id="fcRevealBtn" class="d-btn d-btn-sm" type="button">显示完整答案</button>
-        </div>
-      `;
+      frontNode = el('div', { className: 'fc-drill-box' },
+        el('div', { className: 'fc-cloze-sent', text: promptSent }),
+        el('div', { style: 'font-size:13px;color:var(--text-muted)', text: `提示：${card.zh}${card.ipa ? ` · ${card.ipa}` : ''}` }),
+        el('form', { className: 'fc-drill-form', id: 'fcDrillForm' },
+          el('input', { type: 'text', className: 'fc-drill-input', id: 'fcDrillInput', placeholder: '填入缺失的英文词…', autocomplete: 'off', spellcheck: 'false' }),
+          el('button', { type: 'submit', className: 'd-btn d-btn-primary', text: '验证' })
+        ),
+        el('div', { className: 'fc-feedback', id: 'fcFeedback' }),
+        el('button', { id: 'fcRevealBtn', className: 'd-btn d-btn-sm', type: 'button', text: '显示完整答案' })
+      );
     } else {
-      frontHtml = `
-        <div class="fc-front" id="fcFront">
-          <div class="fc-word">${esc(card.en)}</div>
-          <div class="fc-ipa-row">
-            ${card.ipa ? `<span>${esc(card.ipa)}</span>` : ''}
-            <button id="fcSpeak" class="d-btn d-btn-sm" type="button">${isTouchDevice ? '朗读' : '朗读 (S)'}</button>
-          </div>
-          <div class="fc-flip-hint" id="fcHint" style="${cardFlipped ? 'display:none' : ''}">${isTouchDevice ? '轻触卡片显示释义' : '点击卡片或按 Space 显示释义'}</div>
-        </div>
-      `;
+      frontNode = el('div', { className: 'fc-front', id: 'fcFront' },
+        el('div', { className: 'fc-word', text: card.en }),
+        el('div', { className: 'fc-ipa-row' },
+          card.ipa ? el('span', { text: card.ipa }) : null,
+          el('button', { id: 'fcSpeak', className: 'd-btn d-btn-sm', type: 'button', text: isTouchDevice ? '朗读' : '朗读 (S)' })
+        ),
+        el('div', {
+          className: 'fc-flip-hint',
+          id: 'fcHint',
+          style: cardFlipped ? 'display:none' : '',
+          text: isTouchDevice ? '轻触卡片显示释义' : '点击卡片或按 Space 显示释义'
+        })
+      );
     }
 
-    stage.innerHTML = `
-      <div class="fc-card">
-        ${frontHtml}
-        <div class="fc-back" id="fcBack" style="${cardFlipped ? '' : 'display:none'}">
-          <div class="fc-zh">${esc(card.en)} · ${esc(card.zh)}<span class="fc-pos">${esc(utils.posLabel(card.pos))} ${esc(card.pos_cn || '')}</span></div>
-          ${card.def ? `<div class="fc-def">${esc(card.def)}</div>` : ''}
-          ${contextHtml}
-          ${builtInEx}
-          <div id="fcAiBox">${aiHtml}</div>
-          <div class="fc-rate-row">
-            <button class="fc-rate-btn fc-r1" data-score="1">忘记<small>1 · 12小时</small></button>
-            <button class="fc-rate-btn fc-r2" data-score="2">模糊<small>2 · 1天</small></button>
-            <button class="fc-rate-btn fc-r3" data-score="3">正确<small>3 · 稳步延长</small></button>
-            <button class="fc-rate-btn fc-r4" data-score="4">轻松<small>4 · 加速间隔</small></button>
-          </div>
-          <div class="fc-foot">
-            <span style="font-size:12px;color:var(--text-dim)">已复习 ${card.reviewCount || 0} 次 · 难度系数 ${(card.ease || 2.5).toFixed(2)}</span>
-            <button id="fcMaster" class="d-btn d-btn-sm">✓ 彻底掌握并移出队列</button>
-          </div>
-        </div>
-      </div>
-    `;
+    const rateDefs = [
+      ['1', 'fc-r1', '忘记', '1 · 12小时'],
+      ['2', 'fc-r2', '模糊', '2 · 1天'],
+      ['3', 'fc-r3', '正确', '3 · 稳步延长'],
+      ['4', 'fc-r4', '轻松', '4 · 加速间隔']
+    ];
+    const backNode = el('div', { className: 'fc-back', id: 'fcBack', style: cardFlipped ? '' : 'display:none' },
+      el('div', { className: 'fc-zh' }, `${card.en} · ${card.zh}`, el('span', { className: 'fc-pos', text: posText })),
+      card.def ? el('div', { className: 'fc-def', text: card.def }) : null,
+      contextNode,
+      builtInExNode,
+      el('div', { id: 'fcAiBox' }, aiNode),
+      el('div', { className: 'fc-rate-row' },
+        rateDefs.map(([score, cls, label, hint]) =>
+          el('button', { className: `fc-rate-btn ${cls}`, dataset: { score } }, label, el('small', { text: hint }))
+        )
+      ),
+      el('div', { className: 'fc-foot' },
+        el('span', { style: 'font-size:12px;color:var(--text-dim)', text: `已复习 ${card.reviewCount || 0} 次 · 难度系数 ${(card.ease || 2.5).toFixed(2)}` }),
+        el('button', { id: 'fcMaster', className: 'd-btn d-btn-sm', text: '✓ 彻底掌握并移出队列' })
+      )
+    );
+
+    stage.replaceChildren(el('div', { className: 'fc-card' }, frontNode, backNode));
 
     if (recallMode === 'spelling') {
       speak(card.en);
@@ -413,111 +446,89 @@ document.addEventListener('DOMContentLoaded', async () => {
     await refreshSettings();
     const q = document.getElementById('vocabSearch').value.trim().toLowerCase();
     const listEl = document.getElementById('vocabList');
-    const esc = utils.escapeHtml;
+    const el = utils.createEl;
 
     document.getElementById('addUserWordForm').style.display = activeVocabSub === 'userWords' ? 'flex' : 'none';
     document.getElementById('addPhraseForm').style.display = activeVocabSub === 'phrases' ? 'flex' : 'none';
-    listEl.innerHTML = '';
+    listEl.textContent = '';
+
+    const renderEmpty = (msg) => {
+      listEl.replaceChildren(el('div', { className: 'd-card', style: 'text-align:center;color:var(--text-dim)', text: msg }));
+    };
 
     if (activeVocabSub === 'reviewQueue') {
       const items = (settings.reviewQueue || []).filter(w =>
         !q || w.zh.toLowerCase().includes(q) || w.en.toLowerCase().includes(q)
       );
-      if (!items.length) {
-        listEl.innerHTML = '<div class="d-card" style="text-align:center;color:var(--text-dim)">暂无符合条件的复习词汇</div>';
-        return;
-      }
+      if (!items.length) { renderEmpty('暂无符合条件的复习词汇'); return; }
       for (const w of items) {
-        const row = document.createElement('div');
-        row.className = 'd-row-item';
-        row.innerHTML = `
-          <div class="d-row-main">
-            <span class="d-row-en">${esc(w.en)}</span>
-            <span class="d-row-zh">${esc(w.zh)}</span>
-            <span class="d-row-meta">${formatRelativeTime(w.nextReview || 0)} · 已复习 ${w.reviewCount || 0} 次${w.context ? ' · 含原句语境' : ''}</span>
-          </div>
-          <div class="d-row-actions">
-            <button class="d-btn d-btn-sm" data-act="speak">朗读</button>
-            <button class="d-btn d-btn-sm" data-act="known">已掌握</button>
-            <button class="d-btn d-btn-sm d-btn-danger" data-act="remove">移出</button>
-          </div>
-        `;
-        row.querySelector('[data-act="speak"]').addEventListener('click', () => speak(w.en));
-        row.querySelector('[data-act="known"]').addEventListener('click', async () => { await storage.markKnown(w.zh); renderVocabList(); });
-        row.querySelector('[data-act="remove"]').addEventListener('click', async () => { await storage.removeFromReview(w.zh); renderVocabList(); });
-        listEl.appendChild(row);
+        const speakBtn = el('button', { className: 'd-btn d-btn-sm', text: '朗读' });
+        const knownBtn = el('button', { className: 'd-btn d-btn-sm', text: '已掌握' });
+        const rmBtn = el('button', { className: 'd-btn d-btn-sm d-btn-danger', text: '移出' });
+        speakBtn.addEventListener('click', () => speak(w.en));
+        knownBtn.addEventListener('click', async () => { await storage.markKnown(w.zh); renderVocabList(); });
+        rmBtn.addEventListener('click', async () => { await storage.removeFromReview(w.zh); renderVocabList(); });
+        listEl.appendChild(el('div', { className: 'd-row-item' },
+          el('div', { className: 'd-row-main' },
+            el('span', { className: 'd-row-en', text: w.en }),
+            el('span', { className: 'd-row-zh', text: w.zh }),
+            el('span', { className: 'd-row-meta', text: `${formatRelativeTime(w.nextReview || 0)} · 已复习 ${w.reviewCount || 0} 次${w.context ? ' · 含原句语境' : ''}` })
+          ),
+          el('div', { className: 'd-row-actions' }, speakBtn, knownBtn, rmBtn)
+        ));
       }
     } else if (activeVocabSub === 'knownWords') {
       const items = (settings.knownWords || []).filter(zh => !q || zh.toLowerCase().includes(q));
-      if (!items.length) {
-        listEl.innerHTML = '<div class="d-card" style="text-align:center;color:var(--text-dim)">暂无已掌握词汇</div>';
-        return;
-      }
+      if (!items.length) { renderEmpty('暂无已掌握词汇'); return; }
       for (const zh of items.slice(0, 300)) {
-        const row = document.createElement('div');
-        row.className = 'd-row-item';
-        row.innerHTML = `
-          <div class="d-row-main"><span class="d-row-zh">${esc(zh)}</span></div>
-          <div class="d-row-actions"><button class="d-btn d-btn-sm" data-act="unmark">移回学习</button></div>
-        `;
-        row.querySelector('[data-act="unmark"]').addEventListener('click', async () => { await storage.markUnknown(zh); renderVocabList(); });
-        listEl.appendChild(row);
+        const unmarkBtn = el('button', { className: 'd-btn d-btn-sm', text: '移回学习' });
+        unmarkBtn.addEventListener('click', async () => { await storage.markUnknown(zh); renderVocabList(); });
+        listEl.appendChild(el('div', { className: 'd-row-item' },
+          el('div', { className: 'd-row-main' }, el('span', { className: 'd-row-zh', text: zh })),
+          el('div', { className: 'd-row-actions' }, unmarkBtn)
+        ));
       }
     } else if (activeVocabSub === 'userWords') {
       const items = (settings.userWords || []).filter(w =>
         !q || w.zh.toLowerCase().includes(q) || w.en.toLowerCase().includes(q)
       );
-      if (!items.length) {
-        listEl.innerHTML = '<div class="d-card" style="text-align:center;color:var(--text-dim)">暂无自定义生词，可手动添加或点击右上角「批量导入」</div>';
-        return;
-      }
+      if (!items.length) { renderEmpty('暂无自定义生词，可手动添加或点击右上角「批量导入」'); return; }
       for (const w of items) {
-        const row = document.createElement('div');
-        row.className = 'd-row-item';
-        row.innerHTML = `
-          <div class="d-row-main">
-            <span class="d-row-en">${esc(w.en)}</span>
-            <span class="d-row-zh">${esc(w.zh)}</span>
-            <span class="d-row-meta">${esc(utils.posLabel(w.pos))} ${esc(w.def || '')}</span>
-          </div>
-          <div class="d-row-actions">
-            <button class="d-btn d-btn-sm" data-act="speak">朗读</button>
-            <button class="d-btn d-btn-sm" data-act="review">加入复习</button>
-            <button class="d-btn d-btn-sm d-btn-danger" data-act="del">删除</button>
-          </div>
-        `;
-        row.querySelector('[data-act="speak"]').addEventListener('click', () => speak(w.en));
-        row.querySelector('[data-act="review"]').addEventListener('click', async () => { await storage.addToReview(w.zh, w.en, w); renderVocabList(); });
-        row.querySelector('[data-act="del"]').addEventListener('click', async () => { await storage.removeUserWord(w.zh); renderVocabList(); });
-        listEl.appendChild(row);
+        const speakBtn = el('button', { className: 'd-btn d-btn-sm', text: '朗读' });
+        const revBtn = el('button', { className: 'd-btn d-btn-sm', text: '加入复习' });
+        const delBtn = el('button', { className: 'd-btn d-btn-sm d-btn-danger', text: '删除' });
+        speakBtn.addEventListener('click', () => speak(w.en));
+        revBtn.addEventListener('click', async () => { await storage.addToReview(w.zh, w.en, w); renderVocabList(); });
+        delBtn.addEventListener('click', async () => { await storage.removeUserWord(w.zh); renderVocabList(); });
+        listEl.appendChild(el('div', { className: 'd-row-item' },
+          el('div', { className: 'd-row-main' },
+            el('span', { className: 'd-row-en', text: w.en }),
+            el('span', { className: 'd-row-zh', text: w.zh }),
+            el('span', { className: 'd-row-meta', text: `${utils.posLabel(w.pos)} ${w.def || ''}`.trim() })
+          ),
+          el('div', { className: 'd-row-actions' }, speakBtn, revBtn, delBtn)
+        ));
       }
     } else if (activeVocabSub === 'phrases') {
       const map = storage.resolvePhraseMap(settings);
       const entries = Object.entries(map).filter(([zh, en]) =>
         !q || zh.toLowerCase().includes(q) || en.toLowerCase().includes(q)
       );
-      if (!entries.length) {
-        listEl.innerHTML = '<div class="d-card" style="text-align:center;color:var(--text-dim)">暂无匹配搭配短语</div>';
-        return;
-      }
+      if (!entries.length) { renderEmpty('暂无匹配搭配短语'); return; }
       for (const [zh, en] of entries) {
         const isBuiltin = zh in constants.DEFAULT_PHRASE_MAP && !(zh in (settings.phraseMap || {}));
-        const row = document.createElement('div');
-        row.className = 'd-row-item';
-        row.innerHTML = `
-          <div class="d-row-main">
-            <span class="d-row-zh">${esc(zh)}</span>
-            <span class="d-row-en">${esc(en)}</span>
-            <span class="d-row-meta">${isBuiltin ? '内置' : '自定义'}</span>
-          </div>
-          <div class="d-row-actions">
-            <button class="d-btn d-btn-sm" data-act="speak">朗读</button>
-            <button class="d-btn d-btn-sm d-btn-danger" data-act="del">删除</button>
-          </div>
-        `;
-        row.querySelector('[data-act="speak"]').addEventListener('click', () => speak(en));
-        row.querySelector('[data-act="del"]').addEventListener('click', async () => { await storage.removePhrase(zh); renderVocabList(); });
-        listEl.appendChild(row);
+        const speakBtn = el('button', { className: 'd-btn d-btn-sm', text: '朗读' });
+        const delBtn = el('button', { className: 'd-btn d-btn-sm d-btn-danger', text: '删除' });
+        speakBtn.addEventListener('click', () => speak(en));
+        delBtn.addEventListener('click', async () => { await storage.removePhrase(zh); renderVocabList(); });
+        listEl.appendChild(el('div', { className: 'd-row-item' },
+          el('div', { className: 'd-row-main' },
+            el('span', { className: 'd-row-zh', text: zh }),
+            el('span', { className: 'd-row-en', text: en }),
+            el('span', { className: 'd-row-meta', text: isBuiltin ? '内置' : '自定义' })
+          ),
+          el('div', { className: 'd-row-actions' }, speakBtn, delBtn)
+        ));
       }
     }
   }
@@ -621,38 +632,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     await refreshSettings();
     const list = document.getElementById('customActionsList');
     const acts = settings.customActions || [];
-    const esc = utils.escapeHtml;
+    const el = utils.createEl;
     if (!acts.length) {
-      list.innerHTML = '<div style="font-size:12.5px;color:var(--text-dim);padding:6px 0">暂无自定义动作，可直接点右上角模板快速创建。</div>';
+      list.replaceChildren(el('div', { style: 'font-size:12.5px;color:var(--text-dim);padding:6px 0', text: '暂无自定义动作，可直接点右上角模板快速创建。' }));
       return;
     }
-    list.innerHTML = '';
+    list.textContent = '';
     for (const act of acts) {
-      const row = document.createElement('div');
-      row.className = 'd-row-item';
-      row.innerHTML = `
-        <div class="d-row-main">
-          <span class="d-row-en">${esc(act.name)}</span>
-          <span class="d-row-meta">${esc((act.prompt || '').slice(0, 70))}</span>
-        </div>
-        <div class="d-row-actions">
-          <button class="d-btn d-btn-sm" data-act="edit">编辑</button>
-          <button class="d-btn d-btn-sm d-btn-danger" data-act="del">删除</button>
-        </div>
-      `;
-      row.querySelector('[data-act="edit"]').addEventListener('click', () => {
+      const editBtn = el('button', { className: 'd-btn d-btn-sm', text: '编辑' });
+      const delBtn = el('button', { className: 'd-btn d-btn-sm d-btn-danger', text: '删除' });
+      editBtn.addEventListener('click', () => {
         editingActionId = act.id;
         document.getElementById('actName').value = act.name;
         document.getElementById('actPrompt').value = act.prompt || '';
         document.getElementById('actFields').value = (act.fields || []).join(', ');
         document.getElementById('actCancel').style.display = 'inline-block';
       });
-      row.querySelector('[data-act="del"]').addEventListener('click', async () => {
+      delBtn.addEventListener('click', async () => {
         const next = (settings.customActions || []).filter(a => a.id !== act.id);
         await storage.set({ customActions: next });
         renderCustomActions();
       });
-      list.appendChild(row);
+      list.appendChild(el('div', { className: 'd-row-item' },
+        el('div', { className: 'd-row-main' },
+          el('span', { className: 'd-row-en', text: act.name }),
+          el('span', { className: 'd-row-meta', text: (act.prompt || '').slice(0, 70) })
+        ),
+        el('div', { className: 'd-row-actions' }, editBtn, delBtn)
+      ));
     }
   }
 

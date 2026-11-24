@@ -37,6 +37,7 @@ check "node -e 'JSON.parse(require(\"fs\").readFileSync(\"src/data/wordbank-meta
 check "node -e '
 const fs = require(\"fs\");
 const m = JSON.parse(fs.readFileSync(\"manifest.json\", \"utf8\"));
+if (!m.name || m.name.length > 45) { console.error(\"manifest name exceeds Firefox 45-char limit:\", m.name?.length); process.exit(1); }
 if (!m.background?.service_worker) { console.error(\"Missing background.service_worker\"); process.exit(1); }
 if (!Array.isArray(m.background?.scripts) || !m.background.scripts.length) { console.error(\"Missing background.scripts for Firefox\"); process.exit(1); }
 if (!m.browser_specific_settings?.gecko?.id) { console.error(\"Missing gecko.id\"); process.exit(1); }
@@ -51,7 +52,10 @@ const files = [
 for (const f of files) {
   if (!fs.existsSync(f)) { console.error(\"Missing:\", f); process.exit(1); }
 }
-'" "manifest.json cross-browser keys & referenced files exist"
+'" "manifest.json cross-browser keys, <=45-char name & referenced files exist"
+
+# 3b. Zero unsafe HTML sinks in src/ (Mozilla AMO addons-linter clean)
+check "! rg -n \"\\.(innerHTML|outerHTML)\\s*=|insertAdjacentHTML\\s*\\(\" src/" "zero innerHTML/outerHTML/insertAdjacentHTML in src/"
 
 # 4. Run full automated unit & integrity test suite
 echo ""

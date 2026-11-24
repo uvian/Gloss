@@ -370,6 +370,81 @@
     return null;
   }
 
+  /* ── Safe DOM Builders (zero innerHTML — Mozilla AMO addons-linter & Trusted Types clean) ── */
+  function createEl(tag, attrs = null, ...children) {
+    const node = document.createElement(tag);
+    if (attrs) {
+      for (const [k, v] of Object.entries(attrs)) {
+        if (v == null || v === false) continue;
+        if (k === 'className') node.className = String(v);
+        else if (k === 'text') node.textContent = String(v);
+        else if (k === 'style' && typeof v === 'string') node.style.cssText = v;
+        else if (k === 'dataset' && typeof v === 'object') {
+          for (const [dk, dv] of Object.entries(v)) {
+            if (dv != null) node.dataset[dk] = String(dv);
+          }
+        } else if (k === 'disabled' || k === 'checked' || k === 'selected' || k === 'required') {
+          node[k] = !!v;
+        } else {
+          node.setAttribute(k, String(v));
+        }
+      }
+    }
+    const appendChildSafe = (item) => {
+      if (item == null || item === false || item === '') return;
+      if (Array.isArray(item)) { item.forEach(appendChildSafe); return; }
+      if (typeof item === 'string' || typeof item === 'number') {
+        node.appendChild(document.createTextNode(String(item)));
+      } else {
+        node.appendChild(item);
+      }
+    };
+    children.forEach(appendChildSafe);
+    return node;
+  }
+
+  function createSvg(viewBox, size, shapes, strokeWidth = 2) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', viewBox);
+    svg.setAttribute('width', String(size));
+    svg.setAttribute('height', String(size));
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', String(strokeWidth));
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    for (const [shapeTag, shapeAttrs] of shapes) {
+      const s = document.createElementNS(NS, shapeTag);
+      for (const [k, v] of Object.entries(shapeAttrs)) s.setAttribute(k, String(v));
+      svg.appendChild(s);
+    }
+    return svg;
+  }
+
+  function renderBoldFragment(text) {
+    const frag = document.createDocumentFragment();
+    if (!text) return frag;
+    const str = String(text);
+    let lastIdx = 0;
+    const regex = /\*\*(.+?)\*\*/g;
+    let m;
+    while ((m = regex.exec(str)) !== null) {
+      if (m.index > lastIdx) {
+        frag.appendChild(document.createTextNode(str.slice(lastIdx, m.index)));
+      }
+      const strong = document.createElement('strong');
+      strong.className = 'ifll-bold';
+      strong.textContent = m[1];
+      frag.appendChild(strong);
+      lastIdx = m.index + m[0].length;
+    }
+    if (lastIdx < str.length) {
+      frag.appendChild(document.createTextNode(str.slice(lastIdx)));
+    }
+    return frag;
+  }
+
   const utils = {
     getLocalDateStr,
     escapeHtml,
@@ -382,6 +457,9 @@
     formatApiError,
     sm2Next,
     renderBoldHtml,
+    createEl,
+    createSvg,
+    renderBoldFragment,
     copyText,
     posLabel,
     getLevelWeight,
