@@ -152,7 +152,7 @@
         detail = rawBody.trim().slice(0, 120);
       }
     }
-    const brief = detail ? `（${detail.slice(0, 80)}）` : '';
+    const brief = detail ? `（${detail.slice(0, 160)}）` : '';
     switch (status) {
       case 400: return `请求参数错误，请检查模型名称或接口地址${brief}`;
       case 401: return `API Key 无效或已过期，请在设置中检查${brief}`;

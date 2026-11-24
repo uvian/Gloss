@@ -165,3 +165,34 @@ test('aiClient.parseBatchTranslations validates exact count alignment', () => {
   const badCount = aiClient.parseBatchTranslations('{"translations":["只有一句"]}', 2);
   assert.equal(badCount, null);
 });
+
+test('aiClient.isOpenCodeEndpoint and buildRequestHeaders inject x-opencode-session only for opencode.ai', () => {
+  const aiClient = require('../src/background/ai-client.js');
+
+  assert.equal(aiClient.isOpenCodeEndpoint('https://opencode.ai/zen/go/v1'), true);
+  assert.equal(aiClient.isOpenCodeEndpoint('https://opencode.ai/inference/go/v1'), true);
+  assert.equal(aiClient.isOpenCodeEndpoint('https://api.opencode.ai/v1'), true);
+  assert.equal(aiClient.isOpenCodeEndpoint('https://api.deepseek.com'), false);
+  assert.equal(aiClient.isOpenCodeEndpoint('https://api.openai.com/v1'), false);
+  assert.equal(aiClient.isOpenCodeEndpoint('https://fakeopencode.ai/v1'), false);
+
+  const oc1 = aiClient.buildRequestHeaders('https://opencode.ai/zen/go/v1', 'sk-oc', true, 'translate');
+  const oc2 = aiClient.buildRequestHeaders('https://opencode.ai/zen/go/v1', 'sk-oc', true, 'translate');
+  const ocWord = aiClient.buildRequestHeaders('https://opencode.ai/zen/go/v1', 'sk-oc', true, 'word');
+  assert.equal(oc1.Authorization, 'Bearer sk-oc');
+  assert.equal(oc1['Content-Type'], 'application/json');
+  assert.match(oc1['x-opencode-session'], /^session-[a-z0-9-]+$/i);
+  assert.equal(oc1['x-opencode-session'], oc2['x-opencode-session']);
+  assert.notEqual(oc1['x-opencode-session'], ocWord['x-opencode-session']);
+
+  const t1 = aiClient.buildRequestHeaders('https://opencode.ai/zen/go/v1', 'sk-oc', true, 'test');
+  const t2 = aiClient.buildRequestHeaders('https://opencode.ai/zen/go/v1', 'sk-oc', true, 'test');
+  assert.match(t1['x-opencode-session'], /^session-/);
+  assert.notEqual(t1['x-opencode-session'], t2['x-opencode-session']);
+
+  const ds = aiClient.buildRequestHeaders('https://api.deepseek.com', 'sk-ds', false, 'models');
+  assert.equal(ds.Authorization, 'Bearer sk-ds');
+  assert.equal(ds['Content-Type'], undefined);
+  assert.equal(ds['x-opencode-session'], undefined);
+});
+

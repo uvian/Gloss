@@ -6,7 +6,7 @@
 
   const IFLL = (root.IFLL = root.IFLL || {});
 
-  const VERSION = '0.4.0';
+  const VERSION = '0.4.1';
 
   /* Unbounded user-generated collections stored in chrome.storage.local (10MB quota) */
   const LOCAL_KEYS = ['knownWords', 'reviewQueue', 'userWords', 'phraseMap', 'learningHistory'];
@@ -30,7 +30,20 @@
     'https://opencode.ai/zen/go/v1': {
       name: 'OpenCode Go',
       defaultModel: 'deepseek-v4-flash',
-      models: ['deepseek-v4-flash']
+      models: [
+        'deepseek-v4-flash',
+        'deepseek-v4.1-flash',
+        'deepseek-v4-pro',
+        'glm-5.3-flash',
+        'glm-5.3',
+        'glm-5.2',
+        'qwen3.8-flash',
+        'kimi-k3',
+        'kimi-k2.7-code',
+        'kimi-k2.6',
+        'minimax-m3',
+        'mimo-v2.6-flash'
+      ]
     }
   };
 

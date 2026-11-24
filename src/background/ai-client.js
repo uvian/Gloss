@@ -31,7 +31,42 @@ Provide 2-3 varied examples. Accuracy over quantity; never fabricate.`;
     return (msg?.content || msg?.reasoning_content || '').trim();
   }
 
-  async function apiFetch(baseUrl, path, apiKey, body, timeoutMs = 25000, externalSignal = null) {
+  const _openCodeSessions = new Map();
+
+  function isOpenCodeEndpoint(url) {
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      return host === 'opencode.ai' || host.endsWith('.opencode.ai');
+    } catch (_) {
+      return /opencode\.ai/i.test(String(url || ''));
+    }
+  }
+
+  function makeSessionId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return 'session-' + crypto.randomUUID();
+    }
+    return 'session-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  }
+
+  function getOpenCodeSessionId(scope = 'default') {
+    if (scope === 'test') return makeSessionId();
+    if (!_openCodeSessions.has(scope)) {
+      _openCodeSessions.set(scope, makeSessionId());
+    }
+    return _openCodeSessions.get(scope);
+  }
+
+  function buildRequestHeaders(baseUrl, apiKey, hasBody = false, scope = 'default') {
+    const headers = { Authorization: 'Bearer ' + apiKey };
+    if (hasBody) headers['Content-Type'] = 'application/json';
+    if (isOpenCodeEndpoint(baseUrl)) {
+      headers['x-opencode-session'] = getOpenCodeSessionId(scope);
+    }
+    return headers;
+  }
+
+  async function apiFetch(baseUrl, path, apiKey, body, timeoutMs = 25000, externalSignal = null, scope = 'default') {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(new Error('TIMEOUT')), timeoutMs);
     const onAbort = () => controller.abort(new Error('ABORTED'));
@@ -40,8 +75,7 @@ Provide 2-3 varied examples. Accuracy over quantity; never fabricate.`;
       else externalSignal.addEventListener('abort', onAbort, { once: true });
     }
     try {
-      const headers = { Authorization: 'Bearer ' + apiKey };
-      if (body) headers['Content-Type'] = 'application/json';
+      const headers = buildRequestHeaders(baseUrl, apiKey, !!body, scope);
       return await fetch(baseUrl + path, {
         method: body ? 'POST' : 'GET',
         headers,
@@ -54,7 +88,7 @@ Provide 2-3 varied examples. Accuracy over quantity; never fabricate.`;
     }
   }
 
-  async function callChat({ messages, temperature = 0.4, maxTokens = 1200, jsonMode = false, timeoutMs = 25000, externalSignal = null, override = {} }) {
+  async function callChat({ messages, temperature = 0.4, maxTokens = 1200, jsonMode = false, timeoutMs = 25000, externalSignal = null, override = {}, scope = 'default' }) {
     const { apiKey, apiEndpoint, apiModel } = await resolveCredentials(override);
     if (!apiKey) return { error: '请先在设置中配置 AI API Key', noKey: true };
 
@@ -70,16 +104,32 @@ Provide 2-3 varied examples. Accuracy over quantity; never fabricate.`;
     }
 
     try {
-      const resp = await apiFetch(apiEndpoint, '/chat/completions', apiKey, payload, timeoutMs, externalSignal);
+      const resp = await apiFetch(apiEndpoint, '/chat/completions', apiKey, payload, timeoutMs, externalSignal, scope);
       if (!resp.ok) {
         const raw = await resp.text().catch(() => '');
-        if (resp.status === 400 && jsonMode && /response_format/i.test(raw)) {
-          delete payload.response_format;
-          const retry = await apiFetch(apiEndpoint, '/chat/completions', apiKey, payload, timeoutMs, externalSignal);
-          if (retry.ok) {
-            const d2 = await retry.json();
-            const c2 = extractContent(d2);
-            return c2 ? { ok: true, content: c2 } : { error: 'AI 返回内容为空' };
+        if (resp.status === 400) {
+          let retried = false;
+          if (jsonMode && payload.response_format && /response_format/i.test(raw)) {
+            delete payload.response_format;
+            retried = true;
+          }
+          if (payload.thinking && /thinking|unknown|unsupported|extra/i.test(raw)) {
+            delete payload.thinking;
+            retried = true;
+          }
+          if (payload.temperature !== undefined && /temperature/i.test(raw)) {
+            delete payload.temperature;
+            retried = true;
+          }
+          if (retried) {
+            const retry = await apiFetch(apiEndpoint, '/chat/completions', apiKey, payload, timeoutMs, externalSignal, scope);
+            if (retry.ok) {
+              const d2 = await retry.json();
+              const c2 = extractContent(d2);
+              return c2 ? { ok: true, content: c2 } : { error: 'AI 返回内容为空' };
+            }
+            const raw2 = await retry.text().catch(() => '');
+            return { error: IFLL.utils.formatApiError(retry.status, raw2) };
           }
         }
         return { error: IFLL.utils.formatApiError(resp.status, raw) };
@@ -181,7 +231,8 @@ Provide 2-3 varied examples. Accuracy over quantity; never fabricate.`;
       ],
       temperature: 0.4,
       maxTokens: 1250,
-      jsonMode: true
+      jsonMode: true,
+      scope: 'word'
     });
     if (!res.ok) return { error: res.error };
 
@@ -252,14 +303,14 @@ Provide 2-3 varied examples. Accuracy over quantity; never fabricate.`;
     try {
       const resp = await fetch(apiEndpoint + '/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey },
+        headers: buildRequestHeaders(apiEndpoint, apiKey, true, 'word'),
         body: JSON.stringify(payload),
         signal: controller.signal
       });
 
       if (!resp.ok) {
         const raw = await resp.text().catch(() => '');
-        if (resp.status === 400 && /response_format|stream/i.test(raw)) {
+        if (resp.status === 400 && /response_format|stream|thinking|temperature|unsupported|unknown/i.test(raw)) {
           const fallback = await analyzeWord({ en, zh, def, context, force: true });
           if (fallback.success) {
             safePost({
@@ -388,7 +439,8 @@ Provide 2-3 varied examples. Accuracy over quantity; never fabricate.`;
       temperature: 0.25,
       maxTokens,
       jsonMode: false,
-      timeoutMs: 30000
+      timeoutMs: 30000,
+      scope: 'translate'
     });
 
     if (!res.ok) return { error: res.error };
@@ -477,7 +529,8 @@ Provide 2-3 varied examples. Accuracy over quantity; never fabricate.`;
       temperature: 0.25,
       maxTokens,
       jsonMode: true,
-      timeoutMs: 35000
+      timeoutMs: 35000,
+      scope: 'translate'
     });
 
     if (res.ok) {
@@ -526,7 +579,8 @@ Provide 2-3 varied examples. Accuracy over quantity; never fabricate.`;
       ],
       temperature: 0.35,
       maxTokens: 700,
-      jsonMode: false
+      jsonMode: false,
+      scope: 'selection'
     });
     if (!res.ok) return { error: res.error };
     return { text: res.content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim() };
@@ -552,7 +606,8 @@ Provide 2-3 varied examples. Accuracy over quantity; never fabricate.`;
       ],
       temperature: 0.5,
       maxTokens: 800,
-      jsonMode: fields.length > 0
+      jsonMode: fields.length > 0,
+      scope: 'custom'
     });
     if (!res.ok) return { error: res.error };
     const cleaned = res.content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
@@ -580,7 +635,8 @@ Include exactly 1 natural example per word.`;
       maxTokens: 3200,
       jsonMode: true,
       timeoutMs: 60000,
-      externalSignal
+      externalSignal,
+      scope: 'batch'
     });
     if (!res.ok) return { error: res.error, aborted: res.aborted };
 
@@ -597,7 +653,8 @@ Include exactly 1 natural example per word.`;
       temperature: 0,
       maxTokens: 16,
       timeoutMs: 15000,
-      override
+      override,
+      scope: 'test'
     });
     if (!res.ok) return { error: res.error };
     return { success: true };
@@ -607,7 +664,7 @@ Include exactly 1 natural example per word.`;
     const { apiKey, apiEndpoint } = await resolveCredentials(override);
     if (!apiKey) return { error: '请先填写 API Key' };
     try {
-      const resp = await apiFetch(apiEndpoint, '/models', apiKey, null, 15000);
+      const resp = await apiFetch(apiEndpoint, '/models', apiKey, null, 15000, null, 'models');
       if (!resp.ok) {
         const raw = await resp.text().catch(() => '');
         return { error: IFLL.utils.formatApiError(resp.status, raw) };
@@ -636,7 +693,9 @@ Include exactly 1 natural example per word.`;
     testConnection,
     listModels,
     hasUsableAnalysis,
-    toCacheEntry
+    toCacheEntry,
+    isOpenCodeEndpoint,
+    buildRequestHeaders
   };
 
   IFLL.aiClient = aiClient;

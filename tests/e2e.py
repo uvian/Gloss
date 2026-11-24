@@ -115,11 +115,33 @@ def main():
             ext_id = sw.url.split("/")[2]
             print(f"[1/7] MV3 Service Worker loaded: {ext_id}")
 
-            # Configure mock AI endpoint via Popup so we can test micro-batch translate & input translate cleanly
+            # Configure mock AI endpoint via Popup & verify custom Model Combobox UI
             pop = ctx.new_page()
             pop.on("pageerror", lambda e: errors.append(f"POPUP: {e}"))
             pop.goto(f"chrome-extension://{ext_id}/src/popup/popup.html", wait_until="networkidle")
             pop.wait_for_timeout(500)
+            assert pop.evaluate("() => getComputedStyle(document.body).width") == "380px"
+
+            # Verify OpenCode Go preset + custom harmonious model combobox dropdown
+            pop.click("#apiDetails summary")
+            pop.select_option("#apiEndpoint", "https://opencode.ai/zen/go/v1")
+            assert pop.input_value("#apiModel") == "deepseek-v4-flash"
+            pop.click("#modelToggle")
+            pop.wait_for_timeout(150)
+            menu_box = pop.locator("#modelMenu").bounding_box()
+            assert menu_box and menu_box["height"] > 60 and menu_box["width"] > 120, f"Model menu not visible: {menu_box}"
+            opt_count = pop.locator("#modelMenu .p-combo-opt").count()
+            assert opt_count >= 8, f"Expected >= 8 OpenCode Go models, got {opt_count}"
+            pop.fill("#apiModel", "glm")
+            pop.wait_for_timeout(120)
+            filtered_texts = pop.locator("#modelMenu .p-combo-opt").all_text_contents()
+            assert any("glm-5.3-flash" in t for t in filtered_texts)
+            pop.locator('#modelMenu .p-combo-opt[data-model-val="glm-5.3-flash"]').click()
+            pop.wait_for_timeout(120)
+            assert pop.input_value("#apiModel") == "glm-5.3-flash"
+            assert not pop.locator("#modelCombobox").evaluate("el => el.classList.contains('open')")
+
+            # Now set mock server credentials for live AI E2E tests below
             pop.evaluate(f"""async () => {{
                 await chrome.storage.sync.set({{
                     apiKey: 'sk-mock-test',
@@ -127,8 +149,7 @@ def main():
                     apiModel: 'mock-model'
                 }});
             }}""")
-            assert pop.evaluate("() => getComputedStyle(document.body).width") == "380px"
-            print("[2/7] Popup 380px & mock API configured")
+            print(f"[2/7] Popup 380px + custom Model Combobox ({opt_count} OpenCode Go models) & mock API passed")
 
             # Test Chinese page (auto -> replace mode)
             zh = ctx.new_page()

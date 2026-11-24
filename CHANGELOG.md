@@ -1,5 +1,14 @@
 # IFLL — 更新日志
 
+## v0.4.1 — 2026-11-23
+
+### OpenCode Go 兼容修复与弹窗表单交互优化
+- **修复 OpenCode Go 请求报错**：向 `opencode.ai`（及其子域名）发出的 `/chat/completions`（含流式 SSE）与 `/models` 请求自动携带按任务域隔离且稳定的 `x-opencode-session` 请求头，并扩展 HTTP 400 参数兼容自动降级重试（`response_format` / `thinking` / `temperature`）与错误信息展示长度（160 字符）。
+- **更新 OpenCode Go 预设模型目录**：补充 `deepseek-v4.1-flash`、`glm-5.3-flash`、`glm-5.3`、`glm-5.2`、`qwen3.8-flash`、`kimi-k3`、`kimi-k2.7-code`、`minimax-m3`、`mimo-v2.6-flash` 等当前可用模型。
+- **重构模型选择下拉框与表单视觉**：移除突兀的系统原生 `<datalist>`，改用符合全站暖纸极简风格的自定义可搜索 Combobox（支持关键词过滤、键盘上下/回车/Esc、底部空间不足自动向上翻转、SVG 勾选标识与自定义模型快捷项），并统一弹窗内 `<select>` 箭头、勾选框配色与表单列对齐。
+
+---
+
 ## v0.4.0 — 2026-11-23
 
 ### 核心体验与学习闭环跃升

@@ -37,7 +37,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     apiEndpointCustomRow: document.getElementById('apiEndpointCustomRow'),
     apiEndpointCustom: document.getElementById('apiEndpointCustom'),
     apiModel: document.getElementById('apiModel'),
-    modelDatalist: document.getElementById('modelDatalist'),
+    modelCombobox: document.getElementById('modelCombobox'),
+    modelToggle: document.getElementById('modelToggle'),
+    modelMenu: document.getElementById('modelMenu'),
     refreshModels: document.getElementById('refreshModels'),
     apiKey: document.getElementById('apiKey'),
     apiMsg: document.getElementById('apiMsg'),
@@ -88,14 +90,158 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  function populateModelDatalist(models) {
-    els.modelDatalist.innerHTML = '';
-    for (const m of models) {
-      const opt = document.createElement('option');
-      opt.value = m;
-      els.modelDatalist.appendChild(opt);
+  /* ── Custom Model Combobox ── */
+  let availableModels = [];
+  let comboOpen = false;
+  let comboFocusIdx = -1;
+
+  function setAvailableModels(models) {
+    const uniq = [];
+    const seen = new Set();
+    for (const m of models || []) {
+      const v = String(m || '').trim();
+      if (v && !seen.has(v)) { seen.add(v); uniq.push(v); }
+    }
+    availableModels = uniq;
+    if (comboOpen) renderModelMenu(false);
+  }
+
+  function renderModelMenu(filterByInput = true) {
+    const curVal = els.apiModel.value.trim();
+    const q = filterByInput ? curVal.toLowerCase() : '';
+    const exactMatch = availableModels.some(m => m.toLowerCase() === q);
+    const list = (!q || exactMatch)
+      ? availableModels
+      : availableModels.filter(m => m.toLowerCase().includes(q));
+
+    els.modelMenu.innerHTML = '';
+    comboFocusIdx = -1;
+
+    if (!list.length && !curVal) {
+      const empty = document.createElement('div');
+      empty.className = 'p-combo-empty';
+      empty.textContent = '暂无预设模型，请直接输入或点击「拉取」';
+      els.modelMenu.appendChild(empty);
+      return;
+    }
+
+    for (const m of list) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'p-combo-opt' + (m === curVal ? ' selected' : '');
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('aria-selected', m === curVal ? 'true' : 'false');
+      btn.dataset.modelVal = m;
+      const lbl = document.createElement('span');
+      lbl.className = 'p-combo-opt-label';
+      lbl.textContent = m;
+      lbl.title = m;
+      btn.appendChild(lbl);
+      if (m === curVal) {
+        const chk = document.createElement('span');
+        chk.className = 'p-combo-check';
+        chk.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5 8.5 6.5 11.5 12.5 5"/></svg>';
+        btn.appendChild(chk);
+      }
+      btn.addEventListener('mousedown', (e) => e.preventDefault());
+      btn.addEventListener('click', () => selectModelValue(m));
+      els.modelMenu.appendChild(btn);
+    }
+
+    if (curVal && !availableModels.includes(curVal)) {
+      const customBtn = document.createElement('button');
+      customBtn.type = 'button';
+      customBtn.className = 'p-combo-opt p-combo-custom';
+      customBtn.setAttribute('role', 'option');
+      customBtn.dataset.modelVal = curVal;
+      customBtn.textContent = `使用自定义模型：${curVal}`;
+      customBtn.addEventListener('mousedown', (e) => e.preventDefault());
+      customBtn.addEventListener('click', () => selectModelValue(curVal));
+      els.modelMenu.appendChild(customBtn);
     }
   }
+
+  function positionModelMenu() {
+    const rect = els.modelCombobox.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    els.modelCombobox.classList.toggle('open-up', spaceBelow < 185 && spaceAbove > spaceBelow);
+  }
+
+  function openModelMenu(filterByInput = false) {
+    comboOpen = true;
+    positionModelMenu();
+    els.modelCombobox.classList.add('open');
+    els.apiModel.setAttribute('aria-expanded', 'true');
+    renderModelMenu(filterByInput);
+  }
+
+  function closeModelMenu() {
+    comboOpen = false;
+    comboFocusIdx = -1;
+    els.modelCombobox.classList.remove('open', 'open-up');
+    els.apiModel.setAttribute('aria-expanded', 'false');
+  }
+
+  function selectModelValue(val) {
+    els.apiModel.value = val;
+    closeModelMenu();
+  }
+
+  function moveComboFocus(delta) {
+    const opts = Array.from(els.modelMenu.querySelectorAll('.p-combo-opt'));
+    if (!opts.length) return;
+    comboFocusIdx = (comboFocusIdx + delta + opts.length) % opts.length;
+    opts.forEach((o, i) => o.classList.toggle('focused', i === comboFocusIdx));
+    opts[comboFocusIdx].scrollIntoView({ block: 'nearest' });
+  }
+
+  els.modelToggle.addEventListener('mousedown', (e) => e.preventDefault());
+  els.modelToggle.addEventListener('click', () => {
+    if (comboOpen) closeModelMenu();
+    else {
+      els.apiModel.focus();
+      openModelMenu(false);
+    }
+  });
+  els.apiModel.addEventListener('focus', () => openModelMenu(false));
+  els.apiModel.addEventListener('click', () => {
+    if (!comboOpen) openModelMenu(false);
+  });
+  els.apiModel.addEventListener('input', () => {
+    if (!comboOpen) openModelMenu(true);
+    else renderModelMenu(true);
+  });
+  els.apiModel.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!comboOpen) openModelMenu(false);
+      moveComboFocus(1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!comboOpen) openModelMenu(false);
+      moveComboFocus(-1);
+    } else if (e.key === 'Enter' && comboOpen) {
+      const opts = Array.from(els.modelMenu.querySelectorAll('.p-combo-opt'));
+      if (comboFocusIdx >= 0 && opts[comboFocusIdx]) {
+        e.preventDefault();
+        selectModelValue(opts[comboFocusIdx].dataset.modelVal);
+      } else {
+        closeModelMenu();
+      }
+    } else if (e.key === 'Escape' && comboOpen) {
+      e.preventDefault();
+      closeModelMenu();
+    }
+  });
+  els.apiModel.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (!els.modelCombobox.contains(document.activeElement)) closeModelMenu();
+    }, 120);
+  });
+  document.addEventListener('mousedown', (e) => {
+    if (comboOpen && !els.modelCombobox.contains(e.target)) closeModelMenu();
+  });
 
   function getEffectiveEndpoint() {
     return els.apiEndpoint.value === '__custom__'
@@ -213,11 +359,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (presetUrls.includes(s.apiEndpoint)) {
       els.apiEndpoint.value = s.apiEndpoint;
       els.apiEndpointCustomRow.style.display = 'none';
-      populateModelDatalist(constants.PROVIDER_PRESETS[s.apiEndpoint].models);
+      setAvailableModels(constants.PROVIDER_PRESETS[s.apiEndpoint].models);
     } else if (s.apiEndpoint) {
       els.apiEndpoint.value = '__custom__';
       els.apiEndpointCustom.value = s.apiEndpoint;
       els.apiEndpointCustomRow.style.display = 'block';
+      setAvailableModels(s.apiModel ? [s.apiModel] : []);
     }
     els.apiModel.value = s.apiModel || constants.DEFAULTS.apiModel;
 
@@ -362,7 +509,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     els.apiEndpointCustomRow.style.display = isCustom ? 'block' : 'none';
     if (!isCustom && constants.PROVIDER_PRESETS[val]) {
       const preset = constants.PROVIDER_PRESETS[val];
-      populateModelDatalist(preset.models);
+      setAvailableModels(preset.models);
       els.apiModel.value = preset.defaultModel;
     }
   });
@@ -379,8 +526,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     els.refreshModels.disabled = false;
     els.refreshModels.textContent = '拉取';
     if (res?.models?.length) {
-      populateModelDatalist(res.models);
-      setMsg(els.apiMsg, `已获取 ${res.models.length} 个模型，可在输入框下拉选择`, 'ok');
+      setAvailableModels(res.models);
+      setMsg(els.apiMsg, `已获取 ${res.models.length} 个模型`, 'ok');
+      openModelMenu(false);
     } else {
       setMsg(els.apiMsg, res?.error || '该端点不支持拉取模型列表，请直接手动输入模型名', 'err');
     }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "IFLL — Immersive English Learning & Translator",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Immersive English learning & bilingual web translation — smart inline swap, lemmatized annotation, micro-batch bilingual translation, input translation, and SM-2 active recall.",
   "permissions": [
     "storage",

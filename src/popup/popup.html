@@ -159,8 +159,15 @@
     </div>
     <div class="p-row">
       <label class="p-label" for="apiModel">模型</label>
-      <input type="text" id="apiModel" list="modelDatalist" class="p-input p-input-inline" placeholder="输入或选择模型名">
-      <datalist id="modelDatalist"></datalist>
+      <div class="p-combobox" id="modelCombobox">
+        <div class="p-combo-field">
+          <input type="text" id="apiModel" class="p-combo-input" placeholder="输入或选择模型名" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="modelMenu">
+          <button type="button" id="modelToggle" class="p-combo-toggle" title="展开模型列表" aria-label="展开模型列表">
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>
+          </button>
+        </div>
+        <div class="p-combo-menu" id="modelMenu" role="listbox"></div>
+      </div>
       <button id="refreshModels" class="p-btn p-btn-sm" style="flex-shrink:0">拉取</button>
     </div>
     <div class="p-row">
